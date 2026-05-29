@@ -1,4 +1,4 @@
-import { useEffect, useState, useRef, useCallback } from 'react'
+import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useShortcut } from '@/hooks/useShortcut'
 import { GitBranch, ChevronDown } from 'lucide-react'
@@ -12,6 +12,7 @@ import {
 import { TitleBar } from '@/components/git/TitleBar'
 import { Sidebar } from '@/components/git/Sidebar'
 import { CommitGraph } from '@/components/git/CommitGraph'
+import { buildGraphLanes } from '@/lib/graph'
 import { DetailsPanel } from '@/components/git/DetailsPanel'
 import { StagingArea } from '@/components/git/StagingArea'
 import { CommandPalette } from '@/components/git/CommandPalette'
@@ -62,9 +63,23 @@ export default function Repository() {
   const qc = useQueryClient()
 
   const [logFilter, setLogFilter] = useState<LogOptions>({})
-  const { data: commits = [], isLoading: logLoading } = useLog(repoPath, logFilter)
+  const { data: logData, isLoading: logLoading, fetchNextPage, hasNextPage, isFetchingNextPage } =
+    useLog(repoPath, logFilter)
+  const commits = useMemo(() => {
+    const flat = logData?.pages.flat() ?? []
+    buildGraphLanes(flat) // rebuild lanes over the full loaded set so they connect across page seams
+    return flat
+  }, [logData])
   const { data: refs = EMPTY_REFS } = useRefs(repoPath)
   const { data: status = [] } = useStatus(repoPath)
+
+  // currentBranch lives in the persisted store but is only set on open, so after a
+  // checkout (or any HEAD-moving op) the sidebar highlight would go stale. The refs
+  // query is invalidated by all such mutations, so re-sync repoInfo whenever it changes.
+  useEffect(() => {
+    if (!repoPath) return
+    gitApi.getRepoInfo(repoPath).then(setRepo)
+  }, [refs, repoPath, setRepo])
 
   const branchMutations = useBranchMutations(repoPath)
   const remoteMutations = useRemoteMutations(repoPath)
@@ -400,6 +415,9 @@ export default function Repository() {
               onRevert={(hash) => graphMutations.revert.mutate(hash)}
               onResetTo={(hash, mode) => graphMutations.reset.mutate({ hash, mode })}
               onCheckoutRevision={(hash) => branchExtras.checkoutRevision.mutate(hash)}
+              onReachEnd={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage() }}
+              isFetchingMore={isFetchingNextPage}
+              resetScrollKey={`${repoPath}::${repoInfo.currentBranch ?? 'detached'}::${JSON.stringify(logFilter)}`}
             />
 
             <div

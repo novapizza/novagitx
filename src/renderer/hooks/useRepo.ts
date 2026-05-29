@@ -1,6 +1,8 @@
-import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
+import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { gitApi } from '@/api/git'
 import type { LogOptions } from '@/types/git'
+
+const LOG_PAGE_SIZE = 500
 
 type QueryKey = 'log' | 'refs' | 'status' | 'stashList' | 'remotes' | 'submodules' | 'conflicts' | 'diff:working' | 'diff:staged'
 
@@ -10,9 +12,13 @@ function useInvalidate(repoPath: string | null, keys: QueryKey[]) {
 }
 
 export function useLog(repoPath: string | null, opts?: LogOptions) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: ['log', repoPath, opts],
-    queryFn: () => gitApi.getLog(repoPath!, opts),
+    queryFn: ({ pageParam }) =>
+      gitApi.getLog(repoPath!, { ...opts, skip: pageParam, maxCount: LOG_PAGE_SIZE }),
+    initialPageParam: 0,
+    getNextPageParam: (lastPage, allPages) =>
+      lastPage.length < LOG_PAGE_SIZE ? undefined : allPages.length * LOG_PAGE_SIZE,
     enabled: !!repoPath,
     staleTime: 5_000,
   })

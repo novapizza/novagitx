@@ -1,4 +1,4 @@
-import { useRef, useState, useEffect, memo } from 'react'
+import { useRef, useState, useEffect, useLayoutEffect, memo } from 'react'
 import { flushSync } from 'react-dom'
 import type { GitRevision, GitRef } from '@/types/git'
 import { hashColor, initials } from '@/types/git'
@@ -42,6 +42,12 @@ interface CommitGraphProps {
   onRevert?: (hash: string) => void
   onResetTo?: (hash: string, mode: 'soft' | 'mixed' | 'hard') => void
   onCheckoutRevision?: (hash: string) => void
+  onReachEnd?: () => void
+  isFetchingMore?: boolean
+  // Identity of the current view (repo + branch + filter). When it changes the graph
+  // scrolls back to the top — switching branches should show the newest commits, not
+  // wherever the previous view was scrolled to.
+  resetScrollKey?: string
 }
 
 // Column widths — shared between header and rows so they stay aligned.
@@ -63,6 +69,9 @@ export function CommitGraph({
   onRevert,
   onResetTo,
   onCheckoutRevision,
+  onReachEnd,
+  isFetchingMore,
+  resetScrollKey,
 }: CommitGraphProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [scrollTop, setScrollTop] = useState(0)
@@ -98,18 +107,36 @@ export function CommitGraph({
     if (userMsgW != null) localStorage.setItem(MSG_W_KEY, String(userMsgW))
   }, [userMsgW])
 
-  useEffect(() => {
-    if (!selectedId) return
-    const idx = commits.findIndex((c) => c.objectId === selectedId)
-    if (idx === -1) return
+  // Scroll coordination. We must NOT scroll on every `commits` change — the list
+  // gets a new reference on each background refetch and on every load-more append,
+  // and re-running scroll-to-selected then would yank the viewport (jump to the
+  // selected row, or snap back to the top while paging). So:
+  //   • view switch (resetScrollKey changes) → jump to top, and suppress the
+  //     selection scroll that the subsequent reload would otherwise trigger
+  //   • selection actually changed (user picked a row) → bring it into view
+  //   • anything else (reload, load-more) → leave the scroll position alone
+  const prevResetKey = useRef(resetScrollKey)
+  const lastScrolledId = useRef<string | null>(selectedId)
+  useLayoutEffect(() => {
     const el = scrollRef.current
     if (!el) return
+    if (prevResetKey.current !== resetScrollKey) {
+      prevResetKey.current = resetScrollKey
+      lastScrolledId.current = selectedId // skip the selection scroll right after a switch
+      el.scrollTop = 0
+      setScrollTop(0)
+      return
+    }
+    if (!selectedId || lastScrolledId.current === selectedId) return
+    const idx = commits.findIndex((c) => c.objectId === selectedId)
+    if (idx === -1) return
+    lastScrolledId.current = selectedId
     const commitTop = idx * ROW_H
     const commitBottom = commitTop + ROW_H
     if (commitTop < el.scrollTop || commitBottom > el.scrollTop + el.clientHeight) {
       el.scrollTop = commitTop - el.clientHeight / 2 + ROW_H / 2
     }
-  }, [selectedId, commits])
+  }, [selectedId, commits, resetScrollKey])
 
   const maxLanes = commits.reduce((m, c) => Math.max(m, c.lanes.length), 1)
   const graphW = LEFT_PAD + maxLanes * LANE_W + 8
@@ -152,6 +179,13 @@ export function CommitGraph({
   const visibleCommits = commits.slice(startIdx, endIdx)
   const totalRowW = msgW + graphW + COL_AUTHOR + COL_DATE + COL_HASH
 
+  // Fetch the next page when scrolled within an overscan window of the bottom.
+  // The parent gates onReachEnd on hasNextPage && !isFetching, so extra calls are no-ops.
+  useEffect(() => {
+    if (!onReachEnd || commits.length === 0) return
+    if (totalH - (scrollTop + viewportH) < ROW_H * OVERSCAN) onReachEnd()
+  }, [scrollTop, totalH, viewportH, commits.length, onReachEnd])
+
   return (
     <div ref={scrollRef} className="flex-1 min-h-0 min-w-0 overflow-y-auto overflow-x-auto scrollbar-mac">
       {/* Sticky column headers — widths mirror row layout exactly */}
@@ -179,7 +213,7 @@ export function CommitGraph({
           Loading commits…
         </div>
       ) : (
-        <div style={{ height: totalH, position: 'relative', width: totalRowW }}>
+        <div style={{ height: totalH + (isFetchingMore ? ROW_H : 0), position: 'relative', width: totalRowW }}>
           <div style={{ position: 'absolute', top: 0, left: 0, width: totalRowW, transform: `translateY(${offsetY}px)` }}>
             {visibleCommits.map((c, i) => (
               <CommitRow
@@ -199,6 +233,14 @@ export function CommitGraph({
               />
             ))}
           </div>
+          {isFetchingMore && (
+            <div
+              className="absolute left-0 flex items-center text-[11px] text-muted-foreground"
+              style={{ top: totalH, height: ROW_H, paddingLeft: LEFT_PAD }}
+            >
+              Loading more…
+            </div>
+          )}
         </div>
       )}
     </div>
