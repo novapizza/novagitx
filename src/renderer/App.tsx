@@ -9,7 +9,18 @@ import { installGlobalShortcuts } from '@/hooks/useShortcut'
 import Welcome from './pages/Welcome'
 import Repository from './pages/Repository'
 
-const queryClient = new QueryClient()
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      // Desktop git GUI: status (and other live views) already poll on an interval and
+      // every mutation invalidates the affected keys, so refetching on every window focus
+      // just causes a refetch storm on launch/refocus — refs+log+status all re-fire at
+      // once, re-rendering the view and flashing the graph. Disable it.
+      refetchOnWindowFocus: false,
+      staleTime: 5_000,
+    },
+  },
+})
 
 interface ThemeContextValue {
   mode: ThemeMode
