@@ -49,7 +49,7 @@ import {
   useCommitGraphMutations, useBranchMerge, useTagMutations,
   useStashExtras, useBranchExtras, useGitignoreMutations,
 } from '@/hooks/useRepo'
-import type { GitRevision, RefGroups, LogOptions } from '@/types/git'
+import type { GitRevision, RefGroups, LogOptions, RepoInfo } from '@/types/git'
 
 const EMPTY_REFS: RefGroups = { branches: [], remotes: [], tags: [], stashes: [], head: null }
 
@@ -73,13 +73,19 @@ export default function Repository() {
   const { data: refs = EMPTY_REFS } = useRefs(repoPath)
   const { data: status = [] } = useStatus(repoPath)
 
-  // currentBranch lives in the persisted store but is only set on open, so after a
-  // checkout (or any HEAD-moving op) the sidebar highlight would go stale. The refs
-  // query is invalidated by all such mutations, so re-sync repoInfo whenever it changes.
+  // Keep the persisted repoInfo's HEAD in sync with the live refs query (which already
+  // resolves `head` = current branch, or "HEAD" when detached). Key on the head *string*,
+  // not the refs object — the refs query gets a fresh object on every background refetch,
+  // and re-syncing on identity would re-render the whole view (resetting the graph scroll)
+  // and fire a redundant getRepoInfo round-trip each time. The equality guard makes a
+  // no-op render impossible.
   useEffect(() => {
-    if (!repoPath) return
-    gitApi.getRepoInfo(repoPath).then(setRepo)
-  }, [refs, repoPath, setRepo])
+    if (!repoPath || refs.head == null) return
+    const detached = refs.head === 'HEAD'
+    const branch = detached ? null : refs.head
+    if (branch === repoInfo?.currentBranch && detached === (repoInfo?.isDetachedHead ?? false)) return
+    setRepo({ ...(repoInfo as RepoInfo), currentBranch: branch, isDetachedHead: detached })
+  }, [refs.head, repoPath, repoInfo, setRepo])
 
   const branchMutations = useBranchMutations(repoPath)
   const remoteMutations = useRemoteMutations(repoPath)

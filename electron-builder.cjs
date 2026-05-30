@@ -7,6 +7,19 @@ module.exports = {
   afterPack: 'scripts/afterPack.cjs',
   afterSign: 'scripts/notarize.cjs',
 
+  // electron-vite bundles main, preload and renderer into out/, so nothing in
+  // node_modules is needed at runtime (main/preload import only Node builtins +
+  // electron). Ship only the bundle, the runtime icon, and package.json — this
+  // keeps the entire source tree, docs, configs and ~80 MB of redundant
+  // node_modules out of app.asar.
+  files: [
+    'out/**',
+    'resources/**',
+    'package.json',
+    '!node_modules/**',
+    '!**/*.map',
+  ],
+
   mac: {
     electronLanguages: ['en', 'en_US'],
     category: 'public.app-category.developer-tools',

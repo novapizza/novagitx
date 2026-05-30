@@ -29,6 +29,18 @@ export const useRepoStore = create<RepoStore>()(
         })),
       clearRepo: () => set({ repoInfo: null }),
     }),
-    { name: 'nova-git-x-repo' }
+    {
+      name: 'nova-git-x-repo',
+      // Persist the repo identity (so it reopens on launch) but NOT the volatile HEAD —
+      // currentBranch/isDetachedHead are re-derived from the live refs query on open.
+      // Restoring a stale branch from the last session would paint the wrong branch for a
+      // moment, then visibly "switch" once refs load.
+      partialize: (state) => ({
+        recentRepos: state.recentRepos,
+        repoInfo: state.repoInfo
+          ? { ...state.repoInfo, currentBranch: null, isDetachedHead: false }
+          : null,
+      }),
+    }
   )
 )
