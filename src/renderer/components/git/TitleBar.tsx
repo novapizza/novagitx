@@ -76,11 +76,6 @@ export function TitleBar({
       <span className="text-[12px] text-muted-foreground font-mono truncate max-w-[200px]">
         {displayPath}
       </span>
-      {currentBranch && (
-        <span className="text-[11px] text-primary font-mono bg-primary/10 px-1.5 py-0.5 rounded-md">
-          {currentBranch}
-        </span>
-      )}
 
       <button
         onClick={onOpenPalette}

@@ -360,8 +360,8 @@ export default function Repository() {
               )}
               <div className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground">
                 <button
-                  onClick={() => setShowStaging(false)}
-                  className={`px-2 py-0.5 rounded-md transition-colors ${!showStaging ? 'bg-muted' : 'hover:bg-muted'}`}
+                  onClick={() => { setShowStaging(false); setLogFilter((f) => ({ ...f, onlyCurrentBranch: false })) }}
+                  className={`px-2 py-0.5 rounded-md transition-colors ${!showStaging && !logFilter.onlyCurrentBranch ? 'bg-muted' : 'hover:bg-muted'}`}
                 >
                   All branches
                 </button>
