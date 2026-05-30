@@ -1,3 +1,23 @@
+// Publish targets. electron-builder uploads to every provider that supports it
+// (s3 does, generic does not) and embeds the list in app-update.yml for the
+// auto-updater to read. We upload via the R2 S3 endpoint (needs AWS_* creds) but
+// have the shipped app DOWNLOAD updates from a public, credential-free URL — so
+// the bucket must be publicly readable and R2_RELEASES_PUBLIC_URL must point at it
+// (e.g. a custom domain or the bucket's pub-*.r2.dev URL). The generic entry is
+// listed first so the updater prefers the public URL over the S3 endpoint.
+const publish = [
+  {
+    provider: 's3',
+    bucket: process.env.R2_RELEASES_BUCKET,
+    endpoint: `https://${process.env.R2_RELEASES_ACCOUNT_ID}.r2.cloudflarestorage.com`,
+    region: 'auto',
+    acl: null,
+  },
+]
+if (process.env.R2_RELEASES_PUBLIC_URL) {
+  publish.unshift({ provider: 'generic', url: process.env.R2_RELEASES_PUBLIC_URL })
+}
+
 /** @type {import('electron-builder').Configuration} */
 module.exports = {
   appId: 'com.novagitx.app',
@@ -54,13 +74,7 @@ module.exports = {
     window: { width: 540, height: 380 },
   },
 
-  publish: {
-    provider: 's3',
-    bucket: process.env.R2_RELEASES_BUCKET,
-    endpoint: `https://${process.env.R2_RELEASES_ACCOUNT_ID}.r2.cloudflarestorage.com`,
-    region: 'auto',
-    acl: null,
-  },
+  publish,
 
   directories: {
     output: 'dist',

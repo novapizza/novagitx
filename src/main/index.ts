@@ -5,6 +5,7 @@ import { stat } from 'fs/promises'
 import { registerHandlers } from './ipc/handlers.js'
 import { CHANNELS } from './ipc/channels.js'
 import { GitModule } from './git/GitModule.js'
+import { initAutoUpdater } from './updater.js'
 
 const { app, BrowserWindow, shell, nativeTheme } = electronMain
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
@@ -138,6 +139,7 @@ if (!gotLock) {
   app.whenReady().then(async () => {
     registerHandlers()
     createWindow()
+    initAutoUpdater()
 
     // Resolve initial argv (Windows context-menu launch) off the critical path.
     extractRepoPathFromArgv(process.argv).then((p) => {

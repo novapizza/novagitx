@@ -6,6 +6,8 @@ import { useDiff, useFileDiff, useCommitSignature } from '@/hooks/useRepo'
 import { ShieldCheck, ShieldAlert, ShieldOff } from 'lucide-react'
 import { FileHistoryPanel } from './FileHistoryPanel'
 import { BlameView } from './BlameView'
+import { SplitDiffBody, DiffModeToggle } from './SplitDiff'
+import { useUiStore } from '@/store/uiStore'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -164,6 +166,7 @@ function DiffView({
 }) {
   const { data: diffFiles, isLoading } = useFileDiff(repoPath, commitHash, filePath)
   const lines: DiffLine[] = diffFiles?.[0]?.lines ?? []
+  const viewMode = useUiStore((s) => s.diffViewMode)
 
   if (!filePath) {
     return (
@@ -186,43 +189,50 @@ function DiffView({
       <div className="flex items-center gap-2 px-3 h-8 border-b border-border bg-muted/40 text-[11.5px]">
         <FileText className="size-3.5 text-muted-foreground" />
         <span className="font-mono">{filePath}</span>
-        <button
-          onClick={() => navigator.clipboard.writeText(lines.map((l) => l.text).join('\n'))}
-          className="ml-auto flex items-center gap-1 text-muted-foreground hover:text-foreground"
-        >
-          <Copy className="size-3" /> Copy
-        </button>
+        <div className="ml-auto flex items-center gap-3">
+          <DiffModeToggle />
+          <button
+            onClick={() => navigator.clipboard.writeText(lines.map((l) => l.text).join('\n'))}
+            className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+          >
+            <Copy className="size-3" /> Copy
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-auto scrollbar-mac font-mono text-[11.5px] leading-[1.55]">
-        <table className="w-full">
-          <tbody>
-            {lines.map((l, i) => {
-              const bg =
-                l.type === 'add' ? 'bg-diff-add' : l.type === 'del' ? 'bg-diff-del' : l.type === 'hunk' ? 'bg-muted/70' : ''
-              const fg =
-                l.type === 'add'
-                  ? 'text-diff-add-fg'
-                  : l.type === 'del'
-                  ? 'text-diff-del-fg'
-                  : l.type === 'hunk'
-                  ? 'text-muted-foreground'
-                  : 'text-foreground/85'
-              const sign = l.type === 'add' ? '+' : l.type === 'del' ? '−' : ' '
-              return (
-                <tr key={i} className={bg}>
-                  <td className="select-none w-10 text-right pr-2 text-muted-foreground/60 border-r border-border/40">
-                    {l.oldLineNum ?? ''}
-                  </td>
-                  <td className="select-none w-10 text-right pr-2 text-muted-foreground/60 border-r border-border/40">
-                    {l.newLineNum ?? ''}
-                  </td>
-                  <td className={`select-none w-5 text-center ${fg}`}>{sign}</td>
-                  <td className={`pl-2 pr-4 whitespace-pre ${fg}`}>{l.text}</td>
-                </tr>
-              )
-            })}
-          </tbody>
-        </table>
+        {viewMode === 'split' ? (
+          <SplitDiffBody lines={lines} />
+        ) : (
+          <table className="w-full">
+            <tbody>
+              {lines.map((l, i) => {
+                const bg =
+                  l.type === 'add' ? 'bg-diff-add' : l.type === 'del' ? 'bg-diff-del' : l.type === 'hunk' ? 'bg-muted/70' : ''
+                const fg =
+                  l.type === 'add'
+                    ? 'text-diff-add-fg'
+                    : l.type === 'del'
+                    ? 'text-diff-del-fg'
+                    : l.type === 'hunk'
+                    ? 'text-muted-foreground'
+                    : 'text-foreground/85'
+                const sign = l.type === 'add' ? '+' : l.type === 'del' ? '−' : ' '
+                return (
+                  <tr key={i} className={bg}>
+                    <td className="select-none w-10 text-right pr-2 text-muted-foreground/60 border-r border-border/40">
+                      {l.oldLineNum ?? ''}
+                    </td>
+                    <td className="select-none w-10 text-right pr-2 text-muted-foreground/60 border-r border-border/40">
+                      {l.newLineNum ?? ''}
+                    </td>
+                    <td className={`select-none w-5 text-center ${fg}`}>{sign}</td>
+                    <td className={`pl-2 pr-4 whitespace-pre ${fg}`}>{l.text}</td>
+                  </tr>
+                )
+              })}
+            </tbody>
+          </table>
+        )}
       </div>
     </div>
   )

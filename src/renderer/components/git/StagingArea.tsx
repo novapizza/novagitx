@@ -9,6 +9,8 @@ import {
   ContextMenuSeparator,
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
+import { SplitDiffBody, DiffModeToggle } from './SplitDiff'
+import { useUiStore } from '@/store/uiStore'
 
 interface StagingAreaProps {
   repoPath: string | null
@@ -237,6 +239,7 @@ function DiffPane({
   kind: 'unstaged' | 'staged' | null
 }) {
   const { stageHunk, unstageHunk } = useHunkMutations(repoPath)
+  const viewMode = useUiStore((s) => s.diffViewMode)
 
   if (!filePath) {
     return (
@@ -258,16 +261,21 @@ function DiffPane({
         <FileText className="size-3.5 text-muted-foreground" />
         <span className="font-mono truncate">{filePath}</span>
         <span className="ml-2 text-[10px] text-muted-foreground">{kind === 'staged' ? 'staged' : 'unstaged'}</span>
-        <button
-          onClick={() => navigator.clipboard.writeText(lines.map((l) => l.text).join('\n'))}
-          className="ml-auto flex items-center gap-1 text-muted-foreground hover:text-foreground"
-        >
-          <Copy className="size-3" />
-        </button>
+        <div className="ml-auto flex items-center gap-3">
+          <DiffModeToggle />
+          <button
+            onClick={() => navigator.clipboard.writeText(lines.map((l) => l.text).join('\n'))}
+            className="flex items-center gap-1 text-muted-foreground hover:text-foreground"
+          >
+            <Copy className="size-3" />
+          </button>
+        </div>
       </div>
       <div className="flex-1 overflow-auto scrollbar-mac font-mono text-[11.5px] leading-[1.55]">
         {lines.length === 0 ? (
           <div className="flex items-center justify-center h-full text-[12px] text-muted-foreground">No diff</div>
+        ) : viewMode === 'split' ? (
+          <SplitDiffBody lines={lines} />
         ) : (
           <table className="w-full">
             <tbody>

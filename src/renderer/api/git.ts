@@ -1,5 +1,14 @@
 import type { GitRevision, GitRef, GitItemStatus, DiffFile, LogOptions, RepoInfo, RefGroups, BlameLine, ReflogEntry, Remote, ConflictFile, StashEntry, Submodule, CleanEntry, RebaseCommit, Worktree, FsckResult, CommitSignature, SparseCheckoutInfo, GitConfigEntry } from '@/types/git'
 
+/** Auto-update lifecycle status pushed from the main process. */
+export type UpdateStatus =
+  | { state: 'checking' }
+  | { state: 'available'; version: string }
+  | { state: 'not-available' }
+  | { state: 'downloading'; percent: number }
+  | { state: 'downloaded'; version: string }
+  | { state: 'error'; message: string }
+
 declare global {
   interface Window {
     git: {
@@ -107,6 +116,9 @@ declare global {
       onRepoOpenedFromOS: (cb: (info: RepoInfo) => void) => () => void
       toggleMaximize: () => Promise<void>
       openExternal: (url: string) => Promise<void>
+      checkForUpdates: () => Promise<void>
+      installUpdate: () => Promise<void>
+      onUpdateStatus: (cb: (status: UpdateStatus) => void) => () => void
     }
   }
 }

@@ -137,4 +137,9 @@ export const CHANNELS = {
   // Window controls
   WINDOW_TOGGLE_MAXIMIZE: 'app:window:toggle-maximize',
   OPEN_EXTERNAL: 'app:open-external',
+
+  // Auto-update
+  UPDATE_CHECK:   'app:update:check',   // renderer → main: trigger a check
+  UPDATE_INSTALL: 'app:update:install', // renderer → main: quit and install
+  UPDATE_STATUS:  'app:update:status',  // main → renderer: push status changes
 } as const

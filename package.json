@@ -1,6 +1,6 @@
 {
   "name": "nova-git-x",
-  "version": "0.9.2",
+  "version": "0.9.3",
   "description": "A modern Git GUI for macOS and Windows",
   "main": "out/main/index.mjs",
   "scripts": {
@@ -43,6 +43,7 @@
     "@tanstack/react-query": "^5.83.0",
     "class-variance-authority": "^0.7.1",
     "clsx": "^2.1.1",
+    "electron-updater": "^6.8.3",
     "lucide-react": "^0.462.0",
     "next-themes": "^0.3.0",
     "react": "^18.3.1",

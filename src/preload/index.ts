@@ -24,6 +24,15 @@ const appApi = {
   },
   toggleMaximize: (): Promise<void> => ipcRenderer.invoke(CHANNELS.WINDOW_TOGGLE_MAXIMIZE),
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke(CHANNELS.OPEN_EXTERNAL, url),
+
+  // Auto-update
+  checkForUpdates: (): Promise<void> => ipcRenderer.invoke(CHANNELS.UPDATE_CHECK),
+  installUpdate: (): Promise<void> => ipcRenderer.invoke(CHANNELS.UPDATE_INSTALL),
+  onUpdateStatus: (cb: (status: unknown) => void) => {
+    const listener = (_: Electron.IpcRendererEvent, status: unknown) => cb(status)
+    ipcRenderer.on(CHANNELS.UPDATE_STATUS, listener)
+    return () => ipcRenderer.removeListener(CHANNELS.UPDATE_STATUS, listener)
+  },
 }
 
 const gitApi = {

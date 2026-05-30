@@ -4,7 +4,12 @@ import react from '@vitejs/plugin-react-swc'
 
 export default defineConfig({
   main: {
-    plugins: [externalizeDepsPlugin()],
+    // Bundle electron-updater (and its deps) into the main bundle rather than
+    // externalizing it. The packaged app ships no node_modules (see the lean
+    // `files` config in electron-builder.cjs), so a runtime require of an
+    // externalized electron-updater would fail — inlining it keeps the package
+    // small while making the updater available.
+    plugins: [externalizeDepsPlugin({ exclude: ['electron-updater'] })],
     build: {
       rollupOptions: {
         output: {
