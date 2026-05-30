@@ -119,6 +119,7 @@ declare global {
       checkForUpdates: () => Promise<void>
       installUpdate: () => Promise<void>
       onUpdateStatus: (cb: (status: UpdateStatus) => void) => () => void
+      onManualUpdateCheck: (cb: () => void) => () => void
     }
   }
 }

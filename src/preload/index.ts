@@ -33,6 +33,11 @@ const appApi = {
     ipcRenderer.on(CHANNELS.UPDATE_STATUS, listener)
     return () => ipcRenderer.removeListener(CHANNELS.UPDATE_STATUS, listener)
   },
+  onManualUpdateCheck: (cb: () => void) => {
+    const listener = () => cb()
+    ipcRenderer.on(CHANNELS.UPDATE_MANUAL, listener)
+    return () => ipcRenderer.removeListener(CHANNELS.UPDATE_MANUAL, listener)
+  },
 }
 
 const gitApi = {

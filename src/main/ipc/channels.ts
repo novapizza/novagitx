@@ -142,4 +142,5 @@ export const CHANNELS = {
   UPDATE_CHECK:   'app:update:check',   // renderer → main: trigger a check
   UPDATE_INSTALL: 'app:update:install', // renderer → main: quit and install
   UPDATE_STATUS:  'app:update:status',  // main → renderer: push status changes
+  UPDATE_MANUAL:  'app:update:manual',  // main → renderer: a user-initiated check began
 } as const

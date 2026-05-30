@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 import { toast } from '@/hooks/use-toast'
 import { ToastAction } from '@/components/ui/toast'
 import type { UpdateStatus } from '@/api/git'
@@ -8,12 +8,24 @@ import type { UpdateStatus } from '@/api/git'
  * The only actionable state is `downloaded` — it offers a "Restart" button that
  * quits and installs the staged update. Other states are quiet or informational.
  *
- * `manual` controls whether "checking"/"up to date" toasts show. Background checks
- * stay silent; pass true when wiring a user-initiated "Check for updates" action.
+ * Background checks stay silent on "up to date"/error to avoid launch noise. A
+ * user-initiated check from the "Check for Updates…" menu item flips a one-shot
+ * manual flag (via `onManualUpdateCheck`) so its result is always surfaced.
  */
-export function useAutoUpdate({ manual = false }: { manual?: boolean } = {}): void {
+export function useAutoUpdate(): void {
+  const manualRef = useRef(false)
+
   useEffect(() => {
-    return window.appOS.onUpdateStatus((status: UpdateStatus) => {
+    const offManual = window.appOS.onManualUpdateCheck(() => {
+      manualRef.current = true
+      toast({ title: 'Checking for updates…' })
+    })
+
+    const offStatus = window.appOS.onUpdateStatus((status: UpdateStatus) => {
+      const manual = manualRef.current
+      // Any terminal result ends the manual window.
+      if (status.state !== 'checking') manualRef.current = false
+
       switch (status.state) {
         case 'available':
           toast({
@@ -49,5 +61,10 @@ export function useAutoUpdate({ manual = false }: { manual?: boolean } = {}): vo
           break
       }
     })
-  }, [manual])
+
+    return () => {
+      offManual()
+      offStatus()
+    }
+  }, [])
 }

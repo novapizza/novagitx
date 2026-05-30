@@ -76,3 +76,24 @@ export function initAutoUpdater(): void {
     })
   }, CHECK_INTERVAL_MS)
 }
+
+/**
+ * User-initiated update check, triggered from the application menu
+ * ("Check for Updates…"). Signals the renderer that this check is manual so it
+ * surfaces the result (including "you're up to date"), then runs the check.
+ */
+export function checkForUpdatesManually(): void {
+  for (const win of BrowserWindow.getAllWindows()) {
+    win.webContents.send(CHANNELS.UPDATE_MANUAL)
+  }
+  if (!app.isPackaged) {
+    broadcast({
+      state: 'error',
+      message: 'Update checks are only available in the installed app, not in development.',
+    })
+    return
+  }
+  autoUpdater.checkForUpdates().catch((err) =>
+    broadcast({ state: 'error', message: (err as Error)?.message ?? String(err) })
+  )
+}
