@@ -15,7 +15,7 @@ import { CommitGraph } from '@/components/git/CommitGraph'
 import { buildGraphLanes } from '@/lib/graph'
 import { DetailsPanel } from '@/components/git/DetailsPanel'
 import { StagingArea } from '@/components/git/StagingArea'
-import { CommandPalette } from '@/components/git/CommandPalette'
+import { CommandPalette, type PaletteAction } from '@/components/git/CommandPalette'
 import { CreateBranchDialog } from '@/components/git/CreateBranchDialog'
 import { RemoteActionDialog } from '@/components/git/RemoteActionDialog'
 import { CloneDialog } from '@/components/git/CloneDialog'
@@ -98,6 +98,9 @@ export default function Repository() {
   const gitignoreMutations = useGitignoreMutations(repoPath)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
+  // A commit picked from the command palette may live outside the loaded graph
+  // window; keep it here so the details panel can still render it.
+  const [pickedCommit, setPickedCommit] = useState<GitRevision | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [showStaging, setShowStaging] = useState(false)
   const [createBranch, setCreateBranch] = useState<{ open: boolean; from: string }>({ open: false, from: '' })
@@ -147,7 +150,10 @@ export default function Repository() {
     document.addEventListener('mouseup', onResizeEnd)
   }
 
-  const selected = commits.find((c) => c.objectId === selectedId) ?? commits[0] ?? null
+  const selected =
+    commits.find((c) => c.objectId === selectedId) ??
+    (pickedCommit?.objectId === selectedId ? pickedCommit : null) ??
+    commits[0] ?? null
   const hasChanges = status.length > 0
 
   const remoteNames = [...new Set(refs.remotes.map((r) => r.remote))].filter(Boolean)
@@ -248,6 +254,24 @@ export default function Repository() {
   function handleSelect(c: GitRevision) {
     setSelectedId(c.objectId)
     setShowStaging(false)
+  }
+
+  function handlePaletteSelectCommit(c: GitRevision) {
+    setPickedCommit(c)
+    setSelectedId(c.objectId)
+    setShowStaging(false)
+  }
+
+  function handleRunPaletteAction(action: PaletteAction) {
+    switch (action) {
+      case 'pull':       setRemoteAction('pull'); break
+      case 'push':       setRemoteAction('push'); break
+      case 'fetch':      remoteMutations.fetch.mutate(undefined); break
+      case 'new-branch': setCreateBranch({ open: true, from: repoInfo?.currentBranch ?? '' }); break
+      case 'merge':      setMergeOpen(true); break
+      case 'open-repo':  handleOpenRepo(); break
+      case 'settings':   setSettingsOpen(true); break
+    }
   }
 
   function handleCheckout(branch: string) {
@@ -468,9 +492,15 @@ export default function Repository() {
       <CommandPalette
         open={paletteOpen}
         onClose={() => setPaletteOpen(false)}
+        repoPath={repoPath}
         refs={refs}
         commits={commits}
         onCheckout={handleCheckout}
+        onCheckoutRemote={(remoteBranch) => branchExtras.checkoutRemote.mutate({ remoteBranch })}
+        onSelectCommit={handlePaletteSelectCommit}
+        onSelectRef={(objectId) => { setSelectedId(objectId); setShowStaging(false) }}
+        onOpenFile={(path) => { if (repoPath) window.appOS.openPath(`${repoPath}/${path}`) }}
+        onRunAction={handleRunPaletteAction}
       />
 
       <CreateBranchDialog

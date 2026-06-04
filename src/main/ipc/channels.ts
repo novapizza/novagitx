@@ -7,6 +7,7 @@ export const CHANNELS = {
   LOG_GET:    'git:log:get',
   REFS_GET:   'git:refs:get',
   STATUS_GET: 'git:status:get',
+  REPO_LIST_FILES: 'git:repo:list-files',
 
   DIFF_COMMIT:  'git:diff:commit',
   DIFF_FILE:    'git:diff:file',
@@ -137,6 +138,7 @@ export const CHANNELS = {
   // Window controls
   WINDOW_TOGGLE_MAXIMIZE: 'app:window:toggle-maximize',
   OPEN_EXTERNAL: 'app:open-external',
+  OPEN_PATH: 'app:open-path',
 
   // Auto-update
   UPDATE_CHECK:   'app:update:check',   // renderer → main: trigger a check

@@ -4,7 +4,7 @@ import type { LogOptions } from '@/types/git'
 
 const LOG_PAGE_SIZE = 500
 
-type QueryKey = 'log' | 'refs' | 'status' | 'stashList' | 'remotes' | 'submodules' | 'conflicts' | 'diff:working' | 'diff:staged'
+type QueryKey = 'log' | 'refs' | 'status' | 'stashList' | 'remotes' | 'submodules' | 'conflicts' | 'diff:working' | 'diff:staged' | 'gitignore' | 'gitattributes'
 
 function useInvalidate(repoPath: string | null, keys: QueryKey[]) {
   const qc = useQueryClient()
@@ -229,6 +229,29 @@ export function useFileHistory(repoPath: string | null, filePath: string | null)
     queryKey: ['fileHistory', repoPath, filePath],
     queryFn: () => gitApi.getFileHistory(repoPath!, filePath!),
     enabled: !!repoPath && !!filePath,
+    staleTime: 10_000,
+  })
+}
+
+/** All tracked file paths, for the command palette's file search. Only fetched
+ * while `enabled` (the palette is open) and cached briefly so reopening is instant. */
+export function useTrackedFiles(repoPath: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ['trackedFiles', repoPath],
+    queryFn: () => gitApi.listTrackedFiles(repoPath!),
+    enabled: !!repoPath && enabled,
+    staleTime: 30_000,
+  })
+}
+
+/** Full-history commit search by message (`git log --all --grep`). Runs only for
+ * queries of 2+ chars so the palette stays quiet for short/empty input. */
+export function useCommitSearch(repoPath: string | null, query: string) {
+  const q = query.trim()
+  return useQuery({
+    queryKey: ['commitSearch', repoPath, q],
+    queryFn: () => gitApi.getLog(repoPath!, { grep: q, maxCount: 40, onlyCurrentBranch: false }),
+    enabled: !!repoPath && q.length >= 2,
     staleTime: 10_000,
   })
 }
