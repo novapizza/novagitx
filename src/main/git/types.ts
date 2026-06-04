@@ -16,6 +16,9 @@ export interface GitRevision {
 
 export interface GitRef {
   objectId: string
+  /** The commit this ref points to. Same as objectId, except for annotated
+   * tags where objectId is the tag object and commitId is the peeled commit. */
+  commitId: string
   completeName: string
   name: string
   type: 'head' | 'remote' | 'tag' | 'stash'
