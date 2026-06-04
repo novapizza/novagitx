@@ -1,7 +1,7 @@
 import type { GitExecutor } from './GitExecutor.js'
 import type { GitRef, GitRevision, RefGroups } from './types.js'
 
-const FORMAT = '%(objectname)%00%(refname)%00%(symref)%00%(upstream:track)'
+const FORMAT = '%(objectname)%00%(refname)%00%(symref)%00%(upstream:track)%00%(*objectname)'
 
 export class RefResolver {
   async getRefs(executor: GitExecutor): Promise<RefGroups> {
@@ -33,6 +33,9 @@ export class RefResolver {
     const completeName = parts[1]?.trim()
     if (!objectId || !completeName) return null
     const track = parts[3]?.trim() ?? ''
+    // For annotated tags, `*objectname` is the peeled (dereferenced) commit.
+    // Empty for lightweight tags and all other refs, so fall back to objectId.
+    const commitId = parts[4]?.trim() || objectId
     const aheadMatch = track.match(/ahead (\d+)/)
     const behindMatch = track.match(/behind (\d+)/)
     const ahead = aheadMatch ? parseInt(aheadMatch[1], 10) : undefined
@@ -61,7 +64,7 @@ export class RefResolver {
       return null
     }
 
-    return { objectId, completeName, name, type, remote, isHead: false, ahead, behind }
+    return { objectId, commitId, completeName, name, type, remote, isHead: false, ahead, behind }
   }
 
   attachToRevisions(revisions: GitRevision[], groups: RefGroups): void {
@@ -69,9 +72,9 @@ export class RefResolver {
 
     const allRefs = [...groups.branches, ...groups.remotes, ...groups.tags, ...groups.stashes]
     for (const ref of allRefs) {
-      const arr = byId.get(ref.objectId) ?? []
+      const arr = byId.get(ref.commitId) ?? []
       arr.push(ref)
-      byId.set(ref.objectId, arr)
+      byId.set(ref.commitId, arr)
     }
 
     for (const rev of revisions) {

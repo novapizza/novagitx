@@ -33,24 +33,30 @@ export function SettingsDialog({ open, onOpenChange, repoPath }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[640px]">
-        <DialogHeader>
+      <DialogContent className="sm:max-w-[760px] h-[600px] p-0 gap-0 flex flex-col overflow-hidden">
+        <DialogHeader className="px-5 pt-5 pb-3 border-b border-border shrink-0">
           <DialogTitle className="flex items-center gap-2"><Settings2 className="size-4" />Settings</DialogTitle>
         </DialogHeader>
 
-        <div className="flex items-center gap-1 border-b border-border pb-2">
-          <TabButton active={tab === 'config'} onClick={() => setTab('config')} icon={Settings2}>Git config</TabButton>
-          <TabButton active={tab === 'template'} onClick={() => setTab('template')} icon={FileText}>Commit template</TabButton>
-          <TabButton active={tab === 'ssh'} onClick={() => setTab('ssh')} icon={KeyRound}>SSH keys</TabButton>
-          <TabButton active={tab === 'keys'} onClick={() => setTab('keys')} icon={Keyboard}>Keyboard</TabButton>
+        <div className="flex flex-1 min-h-0">
+          {/* Left nav — fixed width so switching tabs never resizes the window */}
+          <nav className="w-44 shrink-0 border-r border-border p-2 space-y-0.5 overflow-y-auto scrollbar-mac">
+            <TabButton active={tab === 'config'} onClick={() => setTab('config')} icon={Settings2}>Git config</TabButton>
+            <TabButton active={tab === 'template'} onClick={() => setTab('template')} icon={FileText}>Commit template</TabButton>
+            <TabButton active={tab === 'ssh'} onClick={() => setTab('ssh')} icon={KeyRound}>SSH keys</TabButton>
+            <TabButton active={tab === 'keys'} onClick={() => setTab('keys')} icon={Keyboard}>Keyboard</TabButton>
+          </nav>
+
+          {/* Content — scrolls internally; the dialog keeps a constant size */}
+          <div className="flex-1 min-h-0 overflow-y-auto scrollbar-mac p-5">
+            {tab === 'config' && <ConfigPanel repoPath={repoPath} open={open} />}
+            {tab === 'template' && <TemplatePanel />}
+            {tab === 'ssh' && <SshPanel open={open} />}
+            {tab === 'keys' && <HotkeysPanel />}
+          </div>
         </div>
 
-        {tab === 'config' && <ConfigPanel repoPath={repoPath} open={open} />}
-        {tab === 'template' && <TemplatePanel />}
-        {tab === 'ssh' && <SshPanel open={open} />}
-        {tab === 'keys' && <HotkeysPanel />}
-
-        <DialogFooter>
+        <DialogFooter className="px-5 py-3 border-t border-border shrink-0">
           <button onClick={() => onOpenChange(false)} className="h-8 px-4 rounded-md text-[12px] text-muted-foreground hover:bg-muted">Close</button>
         </DialogFooter>
       </DialogContent>
@@ -61,8 +67,8 @@ export function SettingsDialog({ open, onOpenChange, repoPath }: Props) {
 function TabButton({ active, onClick, icon: Icon, children }: { active: boolean; onClick: () => void; icon: typeof Settings2; children: React.ReactNode }) {
   return (
     <button onClick={onClick}
-      className={`flex items-center gap-1.5 h-7 px-3 rounded text-[11.5px] ${active ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted'}`}>
-      <Icon className="size-3.5" />{children}
+      className={`w-full flex items-center gap-2 h-8 px-2.5 rounded-md text-[12px] text-left transition-colors ${active ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:bg-muted'}`}>
+      <Icon className="size-3.5 shrink-0" />{children}
     </button>
   )
 }

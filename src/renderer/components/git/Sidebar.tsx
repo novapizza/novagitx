@@ -188,6 +188,7 @@ export function Sidebar({
               <TagItem
                 key={t.completeName}
                 tag={t}
+                onSelect={onSelectRef ? () => onSelectRef(t.commitId) : undefined}
                 onDelete={onDeleteTag ? () => onDeleteTag(t.name) : undefined}
                 onPush={onPushTag ? () => onPushTag(t.name) : undefined}
               />
@@ -293,17 +294,22 @@ function BranchItem({
 
 function TagItem({
   tag,
+  onSelect,
   onDelete,
   onPush,
 }: {
   tag: GitRef
+  onSelect?: () => void
   onDelete?: () => void
   onPush?: () => void
 }) {
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
-        <button className="w-full flex items-center gap-1.5 pl-3 pr-2 py-1 rounded-md text-[12px] transition-colors text-sidebar-foreground hover:bg-sidebar-hover">
+        <button
+          onClick={onSelect}
+          className="w-full flex items-center gap-1.5 pl-3 pr-2 py-1 rounded-md text-[12px] transition-colors text-sidebar-foreground hover:bg-sidebar-hover"
+        >
           <Tag className="size-3.5 shrink-0 text-sidebar-muted" />
           <span className="truncate">{tag.name}</span>
         </button>
