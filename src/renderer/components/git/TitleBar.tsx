@@ -7,7 +7,7 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
-import { useThemeContext } from '@/App'
+import { useThemeContext } from '@/ThemeContext'
 import type { ThemeMode } from '@/hooks/useTheme'
 
 interface TitleBarProps {
