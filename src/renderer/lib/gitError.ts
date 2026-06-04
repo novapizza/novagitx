@@ -28,6 +28,41 @@ function isPermissionError(text: string): boolean {
   return PERMISSION_PATTERNS.some((re) => re.test(text))
 }
 
+// git refuses checkout/merge/pull/rebase/stash when it would clobber uncommitted work.
+// stderr shape:
+//   error: Your local changes to the following files would be overwritten by checkout:
+//   \tsrc/foo.ts
+//   \tsrc/bar.ts
+//   Please commit your changes or stash them before you switch branches.
+//   Aborting
+// (or "The following untracked working tree files would be overwritten by ...")
+const OVERWRITE_RE =
+  /(?:your local changes to the following files|the following untracked working tree files) would be overwritten by (checkout|merge|pull|rebase|reset|stash|switch)/i
+
+/** Extract the tab/space-indented file paths git lists between the header and its trailer. */
+function extractOverwriteFiles(text: string): string[] {
+  return text
+    .split('\n')
+    .filter((l) => /^[\t ]+\S/.test(l)) // indented lines are the file paths
+    .map((l) => l.trim())
+    .filter((l) => !/^(please|aborting|hint:)/i.test(l))
+}
+
+function describeOverwriteError(text: string): GitErrorMessage {
+  const action = OVERWRITE_RE.exec(text)?.[1]?.toLowerCase() ?? 'this operation'
+  const files = extractOverwriteFiles(text)
+  const fileList =
+    files.length === 0
+      ? ''
+      : files.length <= 3
+        ? ` (${files.join(', ')})`
+        : ` (${files.slice(0, 3).join(', ')} +${files.length - 3} more)`
+  return {
+    title: 'Commit or stash your changes first',
+    description: `You have uncommitted changes${fileList} that ${action} would overwrite. Commit or stash them, then try again.`,
+  }
+}
+
 /** Collapse multi-line git stderr to its most useful single line. */
 function firstMeaningfulLine(text: string): string {
   const lines = text
@@ -55,6 +90,10 @@ export function describeGitError(error: unknown): GitErrorMessage {
   const text = raw.trim()
   if (!text) {
     return { title: 'Operation failed', description: 'The git command failed for an unknown reason.' }
+  }
+
+  if (OVERWRITE_RE.test(text)) {
+    return describeOverwriteError(text)
   }
 
   const detail = firstMeaningfulLine(text)

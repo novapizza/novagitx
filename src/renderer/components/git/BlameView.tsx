@@ -1,6 +1,11 @@
+import { useState } from 'react'
 import { X, GitCommit } from 'lucide-react'
 import { useBlame } from '@/hooks/useRepo'
 import { hashColor } from '@/types/git'
+
+const GUTTER_MIN = 120
+const GUTTER_MAX = 480
+const GUTTER_DEFAULT = 240
 
 interface BlameViewProps {
   repoPath: string | null
@@ -11,7 +16,27 @@ interface BlameViewProps {
 }
 
 export function BlameView({ repoPath, filePath, commitHash, onClose, onSelectCommit }: BlameViewProps) {
-  const { data: lines = [], isLoading } = useBlame(repoPath, filePath, commitHash)
+  const { data: lines = [], isLoading, error } = useBlame(repoPath, filePath, commitHash)
+  const [gutterWidth, setGutterWidth] = useState(GUTTER_DEFAULT)
+
+  function startResize(e: React.MouseEvent) {
+    e.preventDefault()
+    const startX = e.clientX
+    const startW = gutterWidth
+    function onMove(ev: MouseEvent) {
+      setGutterWidth(Math.min(GUTTER_MAX, Math.max(GUTTER_MIN, startW + ev.clientX - startX)))
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
 
   // Group consecutive lines with the same hash for visual blocks
   const blocks = new Map<string, { author: string; authorTime: number }>()
@@ -35,8 +60,26 @@ export function BlameView({ repoPath, filePath, commitHash, onClose, onSelectCom
         </div>
       )}
 
-      {!isLoading && (
-        <div className="flex-1 overflow-auto scrollbar-mac font-mono text-[11.5px] leading-[1.55]">
+      {!isLoading && error && (
+        <div className="flex flex-col items-center justify-center flex-1 gap-1 px-6 text-center">
+          <span className="text-[12px] text-foreground/80">Couldn't load blame for this file</span>
+          <span className="text-[11px] text-muted-foreground/70">
+            {error instanceof Error ? error.message : 'The file may not exist at this commit.'}
+          </span>
+        </div>
+      )}
+
+      {!isLoading && !error && (
+        <div className="relative flex-1 min-h-0">
+          {/* Drag handle to resize the blame gutter. Pinned to the body (not the scroll
+              content) so it stays full-height while the line list scrolls vertically. */}
+          <div
+            onMouseDown={startResize}
+            title="Drag to resize"
+            className="absolute top-0 bottom-0 z-10 w-1.5 -ml-0.5 cursor-col-resize hover:bg-primary/40 transition-colors"
+            style={{ left: gutterWidth }}
+          />
+          <div className="h-full overflow-auto scrollbar-mac font-mono text-[11.5px] leading-[1.55]">
           <table className="w-full">
             <tbody>
               {lines.map((line, i) => {
@@ -52,7 +95,8 @@ export function BlameView({ repoPath, filePath, commitHash, onClose, onSelectCom
                   <tr key={i} className="group hover:bg-muted/30">
                     {/* Blame gutter */}
                     <td
-                      className="select-none w-[180px] pr-2 pl-2 border-r border-border/40 align-top cursor-pointer"
+                      className="select-none pr-2 pl-2 border-r border-border/40 align-top cursor-pointer"
+                      style={{ width: gutterWidth, minWidth: gutterWidth, maxWidth: gutterWidth }}
                       onClick={() => onSelectCommit?.(line.hash)}
                     >
                       {isNewBlock ? (
@@ -61,10 +105,10 @@ export function BlameView({ repoPath, filePath, commitHash, onClose, onSelectCom
                             className="size-2 rounded-full shrink-0"
                             style={{ background: color }}
                           />
-                          <span className="text-[10.5px] text-foreground/80 font-mono truncate" title={meta?.author}>
+                          <span className="text-[10.5px] text-foreground/80 font-mono flex-1 min-w-0 truncate" title={meta?.author}>
                             {meta?.author}
                           </span>
-                          <span className="text-[10px] text-muted-foreground/60 shrink-0 ml-auto">{date}</span>
+                          <span className="text-[10px] text-muted-foreground/60 shrink-0">{date}</span>
                         </div>
                       ) : (
                         <div
@@ -91,6 +135,7 @@ export function BlameView({ repoPath, filePath, commitHash, onClose, onSelectCom
               })}
             </tbody>
           </table>
+          </div>
         </div>
       )}
     </div>

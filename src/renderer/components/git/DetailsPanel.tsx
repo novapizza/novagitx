@@ -93,7 +93,7 @@ export function DetailsPanel({ commit, repoPath }: DetailsPanelProps) {
               <ContextMenu key={f.path}>
                 <ContextMenuTrigger asChild>
                   <button
-                    onClick={() => { setActiveFile(f.path); setPanelView('diff') }}
+                    onClick={() => { setActiveFile(f.path); setPanelView('diff'); setTab('diff') }}
                     className={`w-full flex items-center gap-2 px-3 py-1.5 text-left text-[12px] transition-colors ${
                       isActive && panelView === 'diff' ? 'bg-primary/10 text-foreground' : 'hover:bg-muted/60 text-foreground/80'
                     }`}

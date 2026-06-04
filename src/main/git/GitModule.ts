@@ -278,10 +278,21 @@ export class GitModule {
   // ── Blame ─────────────────────────────────────────────────────────────────
 
   async getBlame(filePath: string, commitHash?: string): Promise<BlameLine[]> {
-    const args = ['blame', '--porcelain']
-    if (commitHash) args.push(commitHash)
-    args.push('--', filePath)
-    const result = await this.executor.run(args)
+    const run = (rev?: string) => {
+      const args = ['blame', '--porcelain']
+      if (rev) args.push(rev)
+      args.push('--', filePath)
+      return this.executor.run(args)
+    }
+
+    let result = await run(commitHash)
+    // When the file was deleted in `commitHash` (status D) it isn't present in that
+    // commit's tree, so `git blame <hash> -- <path>` fails with "no such path … in <hash>".
+    // The blameable content lives in the parent commit, so fall back to it.
+    if (result.exitCode !== 0 && commitHash && /no such path/i.test(result.stderr)) {
+      const parent = await run(`${commitHash}^`)
+      if (parent.exitCode === 0) result = parent
+    }
     if (result.exitCode !== 0) throw new Error(result.stderr.trim())
     return this.parseBlame(result.stdout)
   }
