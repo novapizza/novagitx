@@ -1,7 +1,8 @@
 import * as electronMain from 'electron/main'
+import { shell } from 'electron'
 import { checkForUpdatesManually } from './updater.js'
 
-const { app, Menu, shell } = electronMain
+const { app, Menu } = electronMain
 
 const REPO_URL = 'https://github.com/novapizza/novagitx'
 

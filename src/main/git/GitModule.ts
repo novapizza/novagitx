@@ -1,4 +1,4 @@
-import { existsSync, mkdirSync } from 'fs'
+import { existsSync, mkdirSync, writeFileSync, unlinkSync, readFileSync, chmodSync } from 'fs'
 import { join, basename, dirname } from 'path'
 import { GitExecutor } from './GitExecutor.js'
 import { RevisionReader } from './RevisionReader.js'
@@ -6,7 +6,6 @@ import { RefResolver } from './RefResolver.js'
 import { buildGraphLanes } from './GraphBuilder.js'
 import { StatusParser } from './StatusParser.js'
 import { DiffParser } from './DiffParser.js'
-import { writeFileSync, unlinkSync, readFileSync, existsSync, chmodSync } from 'fs'
 import { tmpdir } from 'os'
 import type { GitRevision, GitItemStatus, DiffFile, LogOptions, RepoInfo, RefGroups, BlameLine, ReflogEntry, Remote, ConflictFile, StashEntry, Submodule, CleanEntry, RebaseCommit, Worktree, FsckResult, CommitSignature, SparseCheckoutInfo, GitConfigEntry } from './types.js'
 
@@ -87,6 +86,14 @@ export class GitModule {
 
   async getStatus(): Promise<GitItemStatus[]> {
     return this.statusParser.getStatus(this.executor)
+  }
+
+  /** Repo-relative paths of all tracked files (NUL-delimited so paths with
+   * spaces/newlines stay intact). Used by the command palette's file search. */
+  async listFiles(): Promise<string[]> {
+    const result = await this.executor.run(['ls-files', '-z'])
+    if (result.exitCode !== 0) return []
+    return result.stdout.split('\0').filter(Boolean)
   }
 
   // ── Diff ──────────────────────────────────────────────────────────────────

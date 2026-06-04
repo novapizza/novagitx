@@ -87,8 +87,8 @@ export function CompareDialog({ open, onOpenChange, repoPath, refs }: Props) {
               >
                 <div className="text-[11.5px] font-medium truncate">{f.path}</div>
                 <div className={`text-[10.5px] mt-0.5 ${
-                  f.status === 'added' ? 'text-graph-2' :
-                  f.status === 'deleted' ? 'text-destructive' : 'text-muted-foreground'
+                  f.status === 'A' ? 'text-graph-2' :
+                  f.status === 'D' ? 'text-destructive' : 'text-muted-foreground'
                 }`}>{f.status}</div>
               </button>
             ))}
@@ -105,21 +105,17 @@ export function CompareDialog({ open, onOpenChange, repoPath, refs }: Props) {
                   <GitCommit className="size-3.5 text-muted-foreground" />
                   <span className="text-[11.5px] font-medium">{f.path}</span>
                 </div>
-                {f.hunks?.map((h, hi) => (
-                  <div key={hi}>
-                    <div className="px-3 py-0.5 bg-primary/5 text-primary/60 text-[10.5px]">{h.header}</div>
-                    {h.lines?.map((l, li) => (
-                      <div
-                        key={li}
-                        className={`px-3 whitespace-pre ${
-                          l.type === 'add' ? 'bg-graph-2/10 text-graph-2' :
-                          l.type === 'del' ? 'bg-destructive/10 text-destructive' :
-                          'text-muted-foreground'
-                        }`}
-                      >
-                        {l.content}
-                      </div>
-                    ))}
+                {f.lines.map((l, li) => (
+                  <div
+                    key={li}
+                    className={`px-3 whitespace-pre ${
+                      l.type === 'hunk' ? 'bg-primary/5 text-primary/60 text-[10.5px]' :
+                      l.type === 'add' ? 'bg-graph-2/10 text-graph-2' :
+                      l.type === 'del' ? 'bg-destructive/10 text-destructive' :
+                      'text-muted-foreground'
+                    }`}
+                  >
+                    {l.text}
                   </div>
                 ))}
               </div>

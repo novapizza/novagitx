@@ -1,4 +1,5 @@
 import * as electronMain from 'electron/main'
+import { shell } from 'electron'
 import { join } from 'path'
 import { fileURLToPath } from 'url'
 import { stat } from 'fs/promises'
@@ -8,11 +9,11 @@ import { GitModule } from './git/GitModule.js'
 import { initAutoUpdater } from './updater.js'
 import { buildAppMenu } from './menu.js'
 
-const { app, BrowserWindow, shell, nativeTheme } = electronMain
+const { app, BrowserWindow, nativeTheme } = electronMain
 const __dirname = fileURLToPath(new URL('.', import.meta.url))
 const isDev = process.env.NODE_ENV === 'development'
 
-let mainWindow: ReturnType<typeof BrowserWindow.prototype.constructor> | null = null
+let mainWindow: Electron.BrowserWindow | null = null
 let pendingRepoPath: string | null = null
 
 async function isDirectory(p: string): Promise<boolean> {

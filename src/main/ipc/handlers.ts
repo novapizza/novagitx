@@ -1,4 +1,5 @@
-import { ipcMain, dialog, nativeTheme, BrowserWindow, shell } from 'electron/main'
+import { ipcMain, dialog, nativeTheme, BrowserWindow } from 'electron/main'
+import { shell } from 'electron'
 import { CHANNELS } from './channels.js'
 import { GitModule } from '../git/GitModule.js'
 import type { LogOptions, RebaseCommit } from '../git/types.js'
@@ -63,6 +64,10 @@ export function registerHandlers(): void {
 
   ipcMain.handle(CHANNELS.STATUS_GET, async (_, repoPath: string) => {
     return getModule(repoPath).getStatus()
+  })
+
+  ipcMain.handle(CHANNELS.REPO_LIST_FILES, async (_, repoPath: string) => {
+    return getModule(repoPath).listFiles()
   })
 
   // ── Diff ──────────────────────────────────────────────────────────────────
@@ -523,6 +528,12 @@ export function registerHandlers(): void {
   ipcMain.handle(CHANNELS.OPEN_EXTERNAL, async (_event, url: string) => {
     if (!/^https?:\/\//i.test(url)) return
     await shell.openExternal(url)
+  })
+
+  ipcMain.handle(CHANNELS.OPEN_PATH, async (_event, fullPath: string) => {
+    // Opens a local file/folder in the OS default application. Returns the
+    // error string shell.openPath produces ('' on success) so the renderer can surface it.
+    return shell.openPath(fullPath)
   })
 }
 

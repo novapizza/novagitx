@@ -24,6 +24,7 @@ const appApi = {
   },
   toggleMaximize: (): Promise<void> => ipcRenderer.invoke(CHANNELS.WINDOW_TOGGLE_MAXIMIZE),
   openExternal: (url: string): Promise<void> => ipcRenderer.invoke(CHANNELS.OPEN_EXTERNAL, url),
+  openPath: (fullPath: string): Promise<string> => ipcRenderer.invoke(CHANNELS.OPEN_PATH, fullPath),
 
   // Auto-update
   checkForUpdates: (): Promise<void> => ipcRenderer.invoke(CHANNELS.UPDATE_CHECK),
@@ -58,6 +59,8 @@ const gitApi = {
     ipcRenderer.invoke(CHANNELS.REFS_GET, repoPath),
   getStatus: (repoPath: string) =>
     ipcRenderer.invoke(CHANNELS.STATUS_GET, repoPath),
+  listTrackedFiles: (repoPath: string): Promise<string[]> =>
+    ipcRenderer.invoke(CHANNELS.REPO_LIST_FILES, repoPath),
 
   // Diff
   getDiffCommit: (repoPath: string, commitHash: string) =>

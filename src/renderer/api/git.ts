@@ -19,6 +19,7 @@ declare global {
       getLog: (repoPath: string, opts?: LogOptions) => Promise<GitRevision[]>
       getRefs: (repoPath: string) => Promise<RefGroups>
       getStatus: (repoPath: string) => Promise<GitItemStatus[]>
+      listTrackedFiles: (repoPath: string) => Promise<string[]>
       getDiffCommit: (repoPath: string, commitHash: string) => Promise<DiffFile[]>
       getDiffFile: (repoPath: string, commitHash: string, filePath: string) => Promise<DiffFile[]>
       getDiffWorking: (repoPath: string, filePath?: string) => Promise<DiffFile[]>
@@ -116,6 +117,7 @@ declare global {
       onRepoOpenedFromOS: (cb: (info: RepoInfo) => void) => () => void
       toggleMaximize: () => Promise<void>
       openExternal: (url: string) => Promise<void>
+      openPath: (fullPath: string) => Promise<string>
       checkForUpdates: () => Promise<void>
       installUpdate: () => Promise<void>
       onUpdateStatus: (cb: (status: UpdateStatus) => void) => () => void
@@ -132,6 +134,7 @@ export const gitApi = {
   getLog: (repoPath: string, opts?: LogOptions): Promise<GitRevision[]> => window.git.getLog(repoPath, opts),
   getRefs: (repoPath: string): Promise<RefGroups> => window.git.getRefs(repoPath),
   getStatus: (repoPath: string): Promise<GitItemStatus[]> => window.git.getStatus(repoPath),
+  listTrackedFiles: (repoPath: string): Promise<string[]> => window.git.listTrackedFiles(repoPath),
   getDiffCommit: (repoPath: string, commitHash: string): Promise<DiffFile[]> => window.git.getDiffCommit(repoPath, commitHash),
   getDiffFile: (repoPath: string, commitHash: string, filePath: string): Promise<DiffFile[]> => window.git.getDiffFile(repoPath, commitHash, filePath),
   getDiffWorking: (repoPath: string, filePath?: string): Promise<DiffFile[]> => window.git.getDiffWorking(repoPath, filePath),
