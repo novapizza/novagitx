@@ -53,6 +53,10 @@ import type { GitRevision, RefGroups, LogOptions, RepoInfo } from '@/types/git'
 
 const EMPTY_REFS: RefGroups = { branches: [], remotes: [], tags: [], stashes: [], head: null }
 
+// True if `id` appears anywhere in the currently loaded log pages.
+const pagesHave = (pages: GitRevision[][] | undefined, id: string) =>
+  pages?.some((p) => p.some((c) => c.objectId === id)) ?? false
+
 type RemoteAction = 'pull' | 'push'
 type PatchMode = 'format' | 'apply'
 type GitignoreFile = 'gitignore' | 'gitattributes'
@@ -101,6 +105,11 @@ export default function Repository() {
   // A commit picked from the command palette may live outside the loaded graph
   // window; keep it here so the details panel can still render it.
   const [pickedCommit, setPickedCommit] = useState<GitRevision | null>(null)
+  // Feedback while we page through history to reach a selected ref/commit that
+  // isn't in the loaded window yet. Token guards against overlapping jumps.
+  const [jumpStatus, setJumpStatus] = useState<'searching' | 'notfound' | null>(null)
+  const jumpTokenRef = useRef(0)
+  const jumpClearTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const [paletteOpen, setPaletteOpen] = useState(false)
   const [showStaging, setShowStaging] = useState(false)
   const [createBranch, setCreateBranch] = useState<{ open: boolean; from: string }>({ open: false, from: '' })
@@ -251,15 +260,58 @@ export default function Repository() {
     useCallback(() => setReflogOpen((o) => !o), []),
   )
 
+  // Page through history until `objectId` is in the loaded set, then let the
+  // graph's scroll-to-selected effect reveal it. Clicking an old branch/tag
+  // points at a commit far down the log that isn't loaded yet; without this the
+  // selection silently fails to scroll. Virtualization keeps rendering cheap no
+  // matter how many commits load — the only cost is the sequential git-log
+  // round-trips, so we cap pathological jumps and bail when history is exhausted.
+  const ensureCommitLoaded = useCallback(
+    async (objectId: string) => {
+      if (jumpClearTimer.current) { clearTimeout(jumpClearTimer.current); jumpClearTimer.current = null }
+      // Already loaded → the scroll effect handles it; no paging needed.
+      if (pagesHave(logData?.pages, objectId)) { setJumpStatus(null); return }
+      const token = ++jumpTokenRef.current
+      setJumpStatus('searching')
+      const MAX_COMMITS = 100_000
+      let res = await fetchNextPage()
+      while (
+        jumpTokenRef.current === token &&                 // a newer jump supersedes this one
+        res.hasNextPage &&
+        !pagesHave(res.data?.pages, objectId) &&
+        (res.data?.pages.reduce((n, p) => n + p.length, 0) ?? 0) < MAX_COMMITS
+      ) {
+        res = await fetchNextPage()
+      }
+      if (jumpTokenRef.current !== token) return           // superseded — newer jump owns the UI now
+      if (pagesHave(res.data?.pages, objectId)) {
+        setJumpStatus(null)
+      } else {
+        setJumpStatus('notfound')
+        jumpClearTimer.current = setTimeout(() => setJumpStatus(null), 5000)
+      }
+    },
+    [logData, fetchNextPage],
+  )
+
+  useEffect(() => () => { if (jumpClearTimer.current) clearTimeout(jumpClearTimer.current) }, [])
+
   function handleSelect(c: GitRevision) {
     setSelectedId(c.objectId)
     setShowStaging(false)
   }
 
+  const handleSelectRef = useCallback((objectId: string) => {
+    setSelectedId(objectId)
+    setShowStaging(false)
+    ensureCommitLoaded(objectId)
+  }, [ensureCommitLoaded])
+
   function handlePaletteSelectCommit(c: GitRevision) {
     setPickedCommit(c)
     setSelectedId(c.objectId)
     setShowStaging(false)
+    ensureCommitLoaded(c.objectId)
   }
 
   function handleRunPaletteAction(action: PaletteAction) {
@@ -354,7 +406,7 @@ export default function Repository() {
             onShowStaging={() => setShowStaging(true)}
             hasChanges={hasChanges}
             onCheckoutRemote={(remoteBranch) => branchExtras.checkoutRemote.mutate({ remoteBranch })}
-            onSelectRef={(objectId) => { setSelectedId(objectId); setShowStaging(false) }}
+            onSelectRef={handleSelectRef}
             onSetUpstream={(branch) => setSetUpstreamBranch(branch)}
             onPruneRemote={(remote) => gitApi.pruneRemote(repoPath!, remote)}
           />
@@ -434,6 +486,25 @@ export default function Repository() {
 
             <LogFilter value={logFilter} onChange={setLogFilter} />
 
+            {jumpStatus && (
+              <div
+                className={`flex items-center gap-2 px-3 py-1 text-[11px] border-b border-border ${
+                  jumpStatus === 'notfound'
+                    ? 'text-destructive bg-destructive/5'
+                    : 'text-muted-foreground bg-titlebar/40'
+                }`}
+              >
+                {jumpStatus === 'searching' ? (
+                  <>
+                    <span className="size-1.5 rounded-full bg-primary animate-pulse" />
+                    Loading history to reach the selected commit…
+                  </>
+                ) : (
+                  <>Couldn’t find the selected commit in this view{logFilter.onlyCurrentBranch ? ' — try “All branches”.' : '.'}</>
+                )}
+              </div>
+            )}
+
             <CommitGraph
               commits={commits}
               selectedId={showStaging ? null : (selected?.objectId ?? null)}
@@ -498,7 +569,7 @@ export default function Repository() {
         onCheckout={handleCheckout}
         onCheckoutRemote={(remoteBranch) => branchExtras.checkoutRemote.mutate({ remoteBranch })}
         onSelectCommit={handlePaletteSelectCommit}
-        onSelectRef={(objectId) => { setSelectedId(objectId); setShowStaging(false) }}
+        onSelectRef={handleSelectRef}
         onOpenFile={(path) => { if (repoPath) window.appOS.openPath(`${repoPath}/${path}`) }}
         onRunAction={handleRunPaletteAction}
       />
