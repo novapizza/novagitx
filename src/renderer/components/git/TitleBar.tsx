@@ -73,9 +73,11 @@ export function TitleBar({
         {repoName}
       </div>
       <span className="text-muted-foreground/60 text-xs">—</span>
-      <span className="text-[12px] text-muted-foreground font-mono truncate max-w-[200px]">
-        {displayPath}
-      </span>
+      <WithTooltip label={repoPath} contentClassName="max-w-[480px] break-all">
+        <span className="no-drag text-[12px] text-muted-foreground truncate max-w-[200px] cursor-default">
+          {displayPath}
+        </span>
+      </WithTooltip>
 
       <button
         onClick={onOpenPalette}
@@ -189,11 +191,11 @@ function ToolbarButton({
   return <WithTooltip label={tooltip}>{button}</WithTooltip>
 }
 
-function WithTooltip({ label, children }: { label: string; children: ReactNode }) {
+function WithTooltip({ label, children, contentClassName }: { label: string; children: ReactNode; contentClassName?: string }) {
   return (
     <Tooltip>
       <TooltipTrigger asChild>{children}</TooltipTrigger>
-      <TooltipContent side="bottom" className="text-[11px] px-2 py-1">
+      <TooltipContent side="bottom" className={`text-[11px] px-2 py-1 ${contentClassName ?? ''}`}>
         {label}
       </TooltipContent>
     </Tooltip>

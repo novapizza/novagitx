@@ -55,8 +55,16 @@ interface CommitGraphProps {
 const COL_AUTHOR = 180
 const COL_DATE   = 80
 const COL_HASH   = 110
-const MSG_MIN_W  = 160
+const MSG_MIN_W  = 320
 const MSG_W_KEY  = 'novagitx-msg-col-width'
+// Graph column. Its natural width tracks the widest row's lane count across the
+// whole loaded set, so one busy merge region (dozens of concurrent lanes) would
+// otherwise force a huge graph on every row and push the messages off-screen.
+// Keep the default compact so the message gets the room; the user can drag it
+// wider, and the SVG clips any lanes past the column edge.
+const GRAPH_MIN_W     = 32
+const GRAPH_DEFAULT_MAX = 160
+const GRAPH_W_KEY     = 'novagitx-graph-col-width'
 
 export function CommitGraph({
   commits,
@@ -77,12 +85,16 @@ export function CommitGraph({
   const [scrollTop, setScrollTop] = useState(0)
   const [viewportH, setViewportH] = useState(600)
   const [containerW, setContainerW] = useState(0)
-  const [userMsgW, setUserMsgW] = useState<number | null>(() => {
-    const v = localStorage.getItem(MSG_W_KEY)
+  const readStoredW = (key: string) => {
+    const v = localStorage.getItem(key)
     const n = v ? parseInt(v, 10) : NaN
     return Number.isFinite(n) ? n : null
-  })
-  const dragRef = useRef<{ startX: number; startW: number } | null>(null)
+  }
+  const [userMsgW, setUserMsgW] = useState<number | null>(() => readStoredW(MSG_W_KEY))
+  const [userGraphW, setUserGraphW] = useState<number | null>(() => readStoredW(GRAPH_W_KEY))
+  const dragRef = useRef<
+    { startX: number; startW: number; min: number; apply: (w: number) => void } | null
+  >(null)
 
   useEffect(() => {
     const el = scrollRef.current
@@ -106,6 +118,10 @@ export function CommitGraph({
   useEffect(() => {
     if (userMsgW != null) localStorage.setItem(MSG_W_KEY, String(userMsgW))
   }, [userMsgW])
+
+  useEffect(() => {
+    if (userGraphW != null) localStorage.setItem(GRAPH_W_KEY, String(userGraphW))
+  }, [userGraphW])
 
   // Scroll coordination. We must NOT scroll on every `commits` change — the list
   // gets a new reference on each background refetch and on every load-more append,
@@ -139,21 +155,24 @@ export function CommitGraph({
   }, [selectedId, commits, resetScrollKey])
 
   const maxLanes = commits.reduce((m, c) => Math.max(m, c.lanes.length), 1)
-  const graphW = LEFT_PAD + maxLanes * LANE_W + 8
+  const naturalGraphW = LEFT_PAD + maxLanes * LANE_W + 8
+  // Cap the graph by default so a busy merge region can't push everything right;
+  // the user can drag it wider (lanes past the column edge are clipped by the SVG).
+  const graphW = userGraphW != null ? Math.max(GRAPH_MIN_W, userGraphW) : Math.min(naturalGraphW, GRAPH_DEFAULT_MAX)
   // Derive message column width from measured container — never rely on CSS flex
   // inside absolutely-positioned rows, which Chromium can misresolve on first paint.
   const naturalMsgW = Math.max(MSG_MIN_W, containerW - graphW - COL_AUTHOR - COL_DATE - COL_HASH)
   const msgW = userMsgW != null ? Math.max(MSG_MIN_W, userMsgW) : naturalMsgW
 
-  function onResizeStart(e: React.MouseEvent) {
+  function startResize(e: React.MouseEvent, opts: { startW: number; min: number; apply: (w: number) => void }) {
     e.preventDefault()
-    dragRef.current = { startX: e.clientX, startW: msgW }
+    dragRef.current = { startX: e.clientX, startW: opts.startW, min: opts.min, apply: opts.apply }
     document.body.style.cursor = 'col-resize'
     document.body.style.userSelect = 'none'
     const onMove = (ev: MouseEvent) => {
       if (!dragRef.current) return
       const next = dragRef.current.startW + (ev.clientX - dragRef.current.startX)
-      setUserMsgW(Math.max(MSG_MIN_W, Math.round(next)))
+      dragRef.current.apply(Math.max(dragRef.current.min, Math.round(next)))
     }
     const onUp = () => {
       dragRef.current = null
@@ -166,9 +185,9 @@ export function CommitGraph({
     document.addEventListener('mouseup', onUp)
   }
 
-  function onResizeDoubleClick() {
-    setUserMsgW(null)
-    localStorage.removeItem(MSG_W_KEY)
+  function resetWidth(apply: (w: null) => void, key: string) {
+    apply(null)
+    localStorage.removeItem(key)
   }
 
   const startIdx = Math.max(0, Math.floor(scrollTop / ROW_H) - OVERSCAN)
@@ -195,9 +214,18 @@ export function CommitGraph({
       >
         <div className="relative font-semibold px-2 py-2 shrink-0" style={{ width: msgW + graphW }}>
           Graph &amp; Message
+          {/* Graph/message boundary — drag to resize the graph column */}
           <div
-            onMouseDown={onResizeStart}
-            onDoubleClick={onResizeDoubleClick}
+            onMouseDown={(e) => startResize(e, { startW: graphW, min: GRAPH_MIN_W, apply: setUserGraphW })}
+            onDoubleClick={() => resetWidth(setUserGraphW, GRAPH_W_KEY)}
+            title="Drag to resize graph · double-click to reset"
+            style={{ left: graphW, marginLeft: -3 }}
+            className="absolute top-0 h-full w-1.5 cursor-col-resize hover:bg-primary/50 active:bg-primary/70 transition-colors z-20"
+          />
+          {/* Right edge — drag to resize the message column */}
+          <div
+            onMouseDown={(e) => startResize(e, { startW: msgW, min: MSG_MIN_W, apply: setUserMsgW })}
+            onDoubleClick={() => resetWidth(setUserMsgW, MSG_W_KEY)}
             title="Drag to resize · double-click to reset"
             className="absolute top-0 right-0 h-full w-1.5 cursor-col-resize hover:bg-primary/50 active:bg-primary/70 transition-colors z-20"
           />

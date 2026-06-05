@@ -181,6 +181,7 @@
   .titlebar-vibrancy input,
   .titlebar-vibrancy select,
   .titlebar-vibrancy textarea,
+  .titlebar-vibrancy .no-drag,
   .titlebar-vibrancy [role="button"],
   .titlebar-vibrancy [role="menu"],
   .titlebar-vibrancy [role="menuitem"] {
