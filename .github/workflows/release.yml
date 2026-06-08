@@ -74,3 +74,23 @@ jobs:
           CSC_LINK: ${{ secrets.CSC_LINK }}
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           CSC_FOR_PULL_REQUEST: false
+
+  prune:
+    # Delete stale release artifacts once the new version is published, keeping
+    # the newest 2 versions so electron-updater can still delta-patch N-1 -> N.
+    name: Prune old R2 artifacts
+    needs: build-mac
+    environment: Production
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - name: Prune R2 releases
+        run: bash scripts/prune-r2-releases.sh
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_SECRET_ACCESS_KEY }}
+          R2_RELEASES_ACCOUNT_ID: ${{ secrets.R2_RELEASES_ACCOUNT_ID }}
+          R2_RELEASES_BUCKET: ${{ secrets.R2_RELEASES_BUCKET }}
+          KEEP: '2'
