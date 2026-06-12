@@ -58,7 +58,10 @@ function createWindow(): void {
         titleBarStyle: 'hidden',
         trafficLightPosition: { x: 12, y: 14 },
         vibrancy: 'under-window',
-        visualEffectState: 'active',
+        // Let macOS freeze the live blur when the window is inactive instead of
+        // forcing it 'active' — saves GPU/energy for a window left in the
+        // background, with no visible change while it's focused.
+        visualEffectState: 'followWindow',
         backgroundColor: '#00000000',
       }
     : isWin

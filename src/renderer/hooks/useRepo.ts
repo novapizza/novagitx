@@ -1,8 +1,16 @@
 import { useQuery, useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { gitApi } from '@/api/git'
+import { useWindowFocus } from '@/hooks/useWindowFocus'
 import type { LogOptions } from '@/types/git'
 
 const LOG_PAGE_SIZE = 500
+
+// Live views poll on an interval since there is no filesystem watcher. Pause the
+// polling whenever the window is unfocused so we stop spawning `git` subprocesses
+// while the app sits in the background — `false` disables the interval entirely.
+function liveInterval(focused: boolean, ms: number): number | false {
+  return focused ? ms : false
+}
 
 type QueryKey = 'log' | 'refs' | 'status' | 'stashList' | 'remotes' | 'submodules' | 'conflicts' | 'diff:working' | 'diff:staged' | 'gitignore' | 'gitattributes'
 
@@ -34,11 +42,13 @@ export function useRefs(repoPath: string | null) {
 }
 
 export function useStatus(repoPath: string | null) {
+  const focused = useWindowFocus()
   return useQuery({
     queryKey: ['status', repoPath],
     queryFn: () => gitApi.getStatus(repoPath!),
     enabled: !!repoPath,
-    refetchInterval: 3_000,
+    refetchInterval: liveInterval(focused, 3_000),
+    refetchOnWindowFocus: true,
   })
 }
 
@@ -135,22 +145,26 @@ export function useCommitMutations(repoPath: string | null) {
 }
 
 export function useWorkingDiff(repoPath: string | null, filePath?: string | null) {
+  const focused = useWindowFocus()
   return useQuery({
     queryKey: ['diff:working', repoPath, filePath],
     queryFn: () => gitApi.getDiffWorking(repoPath!, filePath ?? undefined),
     enabled: !!repoPath,
     staleTime: 0,
-    refetchInterval: 3_000,
+    refetchInterval: liveInterval(focused, 3_000),
+    refetchOnWindowFocus: true,
   })
 }
 
 export function useStagedDiff(repoPath: string | null, filePath?: string | null) {
+  const focused = useWindowFocus()
   return useQuery({
     queryKey: ['diff:staged', repoPath, filePath],
     queryFn: () => gitApi.getDiffStaged(repoPath!, filePath ?? undefined),
     enabled: !!repoPath,
     staleTime: 0,
-    refetchInterval: 3_000,
+    refetchInterval: liveInterval(focused, 3_000),
+    refetchOnWindowFocus: true,
   })
 }
 
@@ -327,12 +341,14 @@ export function useRebaseMutations(repoPath: string | null) {
 }
 
 export function useConflicts(repoPath: string | null) {
+  const focused = useWindowFocus()
   return useQuery({
     queryKey: ['conflicts', repoPath],
     queryFn: () => gitApi.getConflicts(repoPath!),
     enabled: !!repoPath,
     staleTime: 2_000,
-    refetchInterval: 3_000,
+    refetchInterval: liveInterval(focused, 3_000),
+    refetchOnWindowFocus: true,
   })
 }
 
@@ -386,12 +402,14 @@ export function useStashMutations(repoPath: string | null) {
 // ── Tier 2 hooks ──────────────────────────────────────────────────────────────
 
 export function useStashList(repoPath: string | null) {
+  const focused = useWindowFocus()
   return useQuery({
     queryKey: ['stashList', repoPath],
     queryFn: () => gitApi.listStashes(repoPath!),
     enabled: !!repoPath,
     staleTime: 3_000,
-    refetchInterval: 5_000,
+    refetchInterval: liveInterval(focused, 5_000),
+    refetchOnWindowFocus: true,
   })
 }
 

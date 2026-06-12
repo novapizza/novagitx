@@ -74,6 +74,24 @@ module.exports = {
     window: { width: 540, height: 380 },
   },
 
+  win: {
+    icon: 'build/icon.ico',
+    target: [{ target: 'nsis', arch: ['x64', 'arm64'] }],
+  },
+
+  nsis: {
+    oneClick: false,
+    perMachine: false,
+    allowToChangeInstallationDirectory: true,
+    include: 'build/installer.nsh',
+  },
+
+  linux: {
+    icon: 'build/icons',
+    category: 'Development',
+    target: ['AppImage', 'deb'],
+  },
+
   publish,
 
   directories: {
