@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Settings2, KeyRound, FileText, Copy, Plus, Loader2, Keyboard } from 'lucide-react'
+import { Settings2, KeyRound, FileText, Copy, Plus, Loader2, Keyboard, GitBranch, SlidersHorizontal } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useGitConfig, useGitConfigMutations } from '@/hooks/useRepo'
 import { gitApi } from '@/api/git'
 import type { GitConfigEntry } from '@/types/git'
 import { HotkeysPanel } from '@/components/git/HotkeysPanel'
+import { useUiStore, type BranchView } from '@/store/uiStore'
 
 interface Props {
   open: boolean
@@ -26,10 +27,10 @@ const COMMON_KEYS = [
   { key: 'init.defaultBranch', label: 'Default branch name' },
 ] as const
 
-type Tab = 'config' | 'template' | 'ssh' | 'keys'
+type Tab = 'general' | 'config' | 'template' | 'ssh' | 'keys'
 
 export function SettingsDialog({ open, onOpenChange, repoPath }: Props) {
-  const [tab, setTab] = useState<Tab>('config')
+  const [tab, setTab] = useState<Tab>('general')
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -41,6 +42,7 @@ export function SettingsDialog({ open, onOpenChange, repoPath }: Props) {
         <div className="flex flex-1 min-h-0">
           {/* Left nav — fixed width so switching tabs never resizes the window */}
           <nav className="w-44 shrink-0 border-r border-border p-2 space-y-0.5 overflow-y-auto scrollbar-mac">
+            <TabButton active={tab === 'general'} onClick={() => setTab('general')} icon={SlidersHorizontal}>General</TabButton>
             <TabButton active={tab === 'config'} onClick={() => setTab('config')} icon={Settings2}>Git config</TabButton>
             <TabButton active={tab === 'template'} onClick={() => setTab('template')} icon={FileText}>Commit template</TabButton>
             <TabButton active={tab === 'ssh'} onClick={() => setTab('ssh')} icon={KeyRound}>SSH keys</TabButton>
@@ -49,6 +51,7 @@ export function SettingsDialog({ open, onOpenChange, repoPath }: Props) {
 
           {/* Content — scrolls internally; the dialog keeps a constant size */}
           <div className="flex-1 min-h-0 overflow-y-auto scrollbar-mac p-5">
+            {tab === 'general' && <GeneralPanel />}
             {tab === 'config' && <ConfigPanel repoPath={repoPath} open={open} />}
             {tab === 'template' && <TemplatePanel />}
             {tab === 'ssh' && <SshPanel open={open} />}
@@ -70,6 +73,47 @@ function TabButton({ active, onClick, icon: Icon, children }: { active: boolean;
       className={`w-full flex items-center gap-2 h-8 px-2.5 rounded-md text-[12px] text-left transition-colors ${active ? 'bg-primary/15 text-primary font-medium' : 'text-muted-foreground hover:bg-muted'}`}>
       <Icon className="size-3.5 shrink-0" />{children}
     </button>
+  )
+}
+
+// ── General (app preferences) ───────────────────────────────────────────────
+
+function GeneralPanel() {
+  const branchView = useUiStore((s) => s.branchView)
+  const setBranchView = useUiStore((s) => s.setBranchView)
+
+  const options: { value: BranchView; label: string; hint: string }[] = [
+    { value: 'grouped', label: 'Grouped by name', hint: 'Nest branches into collapsible folders (e.g. feat/foo, feat/bar → a "feat" folder).' },
+    { value: 'flat', label: 'Flat list', hint: 'Show every branch with its full name on one line.' },
+  ]
+
+  return (
+    <div className="space-y-5">
+      <section className="space-y-2">
+        <div className="flex items-center gap-2">
+          <GitBranch className="size-3.5 text-muted-foreground" />
+          <h3 className="text-[12.5px] font-medium">Branch list</h3>
+        </div>
+        <p className="text-[11px] text-muted-foreground">How branches are displayed in the side pane.</p>
+        <div className="space-y-1.5 pt-1">
+          {options.map((o) => (
+            <button
+              key={o.value}
+              onClick={() => setBranchView(o.value)}
+              className={`w-full flex items-start gap-2.5 text-left rounded-md border px-3 py-2.5 transition-colors ${
+                branchView === o.value ? 'border-primary bg-primary/10' : 'border-border/60 hover:bg-muted'
+              }`}
+            >
+              <span className={`mt-0.5 size-3.5 shrink-0 rounded-full border-2 ${branchView === o.value ? 'border-primary bg-primary' : 'border-muted-foreground/40'}`} />
+              <span className="min-w-0">
+                <span className="block text-[12px] font-medium">{o.label}</span>
+                <span className="block text-[11px] text-muted-foreground">{o.hint}</span>
+              </span>
+            </button>
+          ))}
+        </div>
+      </section>
+    </div>
   )
 }
 
