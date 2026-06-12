@@ -1,6 +1,6 @@
 {
   "name": "nova-git-x",
-  "version": "0.9.9",
+  "version": "0.9.10",
   "description": "A modern Git GUI for macOS and Windows",
   "main": "out/main/index.mjs",
   "scripts": {
