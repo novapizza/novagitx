@@ -17,7 +17,111 @@ import {
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu'
 import { useRepoStore } from '@/store/repoStore'
+import { useUiStore } from '@/store/uiStore'
 import { gitApi } from '@/api/git'
+
+// A node in the branch name tree. Leaves carry a `branch`; folders carry `children`.
+// Git refs can't be both a path and a prefix (e.g. `feat` and `feat/x` can't coexist),
+// so a node is always either a leaf or a folder, never both.
+interface BranchNode {
+  name: string // last path segment, shown as the label
+  path: string // full prefix up to this node, used as React key
+  branch?: GitRef
+  children: BranchNode[]
+}
+
+function buildBranchTree(branches: GitRef[]): BranchNode[] {
+  const root: BranchNode = { name: '', path: '', children: [] }
+  for (const b of branches) {
+    const parts = b.name.split('/')
+    let node = root
+    parts.forEach((part, i) => {
+      const isLeaf = i === parts.length - 1
+      const path = parts.slice(0, i + 1).join('/')
+      let child = node.children.find((c) => c.name === part)
+      if (!child) {
+        child = { name: part, path, children: [] }
+        node.children.push(child)
+      }
+      if (isLeaf) child.branch = b
+      node = child
+    })
+  }
+  return sortNodes(root.children)
+}
+
+// Folders first, then leaves; alphabetical within each. Recurses into folders.
+function sortNodes(nodes: BranchNode[]): BranchNode[] {
+  nodes.sort((a, b) => {
+    const aFolder = a.children.length > 0
+    const bFolder = b.children.length > 0
+    if (aFolder !== bFolder) return aFolder ? -1 : 1
+    return a.name.localeCompare(b.name)
+  })
+  for (const n of nodes) if (n.children.length) sortNodes(n.children)
+  return nodes
+}
+
+interface BranchTreeProps {
+  nodes: BranchNode[]
+  depth: number
+  currentBranch: string | null
+  onCheckout: (branch: string) => void
+  onCreateBranch: (from: string) => void
+  onDeleteBranch: (name: string) => void
+  onRenameBranch?: (name: string) => void
+  onSetUpstream?: (branch: string) => void
+}
+
+function BranchTree(props: BranchTreeProps) {
+  const { nodes, depth, currentBranch, onCheckout, onCreateBranch, onDeleteBranch, onRenameBranch, onSetUpstream } = props
+  // 12px base (matches the flat pl-3) + 14px per nesting level.
+  const indentPx = 12 + depth * 14
+  return (
+    <>
+      {nodes.map((node) =>
+        node.children.length ? (
+          <BranchFolder key={node.path} label={node.name} indentPx={indentPx}>
+            <BranchTree {...props} nodes={node.children} depth={depth + 1} />
+          </BranchFolder>
+        ) : (
+          node.branch && (
+            <BranchItem
+              key={node.path}
+              branch={node.branch}
+              label={node.name}
+              indentPx={indentPx}
+              active={node.branch.name === currentBranch}
+              onCheckout={() => onCheckout(node.branch!.name)}
+              onCreateFrom={() => onCreateBranch(node.branch!.name)}
+              onDelete={() => onDeleteBranch(node.branch!.name)}
+              onRename={onRenameBranch ? () => onRenameBranch(node.branch!.name) : undefined}
+              onSetUpstream={onSetUpstream ? () => onSetUpstream(node.branch!.name) : undefined}
+            />
+          )
+        )
+      )}
+    </>
+  )
+}
+
+function BranchFolder({ label, indentPx, children }: { label: string; indentPx: number; children: React.ReactNode }) {
+  const [open, setOpen] = useState(true)
+  return (
+    <div>
+      <button
+        onClick={() => setOpen((o) => !o)}
+        style={{ paddingLeft: indentPx }}
+        className="w-full flex items-center gap-1 pr-2 py-1 rounded-md text-[12px] text-sidebar-foreground hover:bg-sidebar-hover"
+      >
+        <ChevronRight className={`size-3 shrink-0 transition-transform ${open ? 'rotate-90' : ''}`} />
+        <Folder className="size-3.5 shrink-0 text-graph-3" />
+        <span className="truncate font-medium">{label}</span>
+      </button>
+      {open && <div className="space-y-px">{children}</div>}
+    </div>
+  )
+}
 
 interface SidebarProps {
   refs: RefGroups
@@ -62,6 +166,7 @@ export function Sidebar({
 }: SidebarProps) {
   const abbr = initials(repoName)
   const { recentRepos, setRepo } = useRepoStore()
+  const branchView = useUiStore((s) => s.branchView)
   const [switchLoading, setSwitchLoading] = useState(false)
 
   const remoteGroups = refs.remotes.reduce<Record<string, GitRef[]>>((acc, r) => {
@@ -148,18 +253,31 @@ export function Sidebar({
         </button>
 
         <Section icon={GitBranch} label="Branches" defaultOpen>
-          {refs.branches.map((b) => (
-            <BranchItem
-              key={b.completeName}
-              branch={b}
-              active={b.name === currentBranch}
-              onCheckout={() => onCheckout(b.name)}
-              onCreateFrom={() => onCreateBranch(b.name)}
-              onDelete={() => onDeleteBranch(b.name)}
-              onRename={onRenameBranch ? () => onRenameBranch(b.name) : undefined}
-              onSetUpstream={onSetUpstream ? () => onSetUpstream(b.name) : undefined}
+          {branchView === 'grouped' ? (
+            <BranchTree
+              nodes={buildBranchTree(refs.branches)}
+              depth={0}
+              currentBranch={currentBranch}
+              onCheckout={onCheckout}
+              onCreateBranch={onCreateBranch}
+              onDeleteBranch={onDeleteBranch}
+              onRenameBranch={onRenameBranch}
+              onSetUpstream={onSetUpstream}
             />
-          ))}
+          ) : (
+            refs.branches.map((b) => (
+              <BranchItem
+                key={b.completeName}
+                branch={b}
+                active={b.name === currentBranch}
+                onCheckout={() => onCheckout(b.name)}
+                onCreateFrom={() => onCreateBranch(b.name)}
+                onDelete={() => onDeleteBranch(b.name)}
+                onRename={onRenameBranch ? () => onRenameBranch(b.name) : undefined}
+                onSetUpstream={onSetUpstream ? () => onSetUpstream(b.name) : undefined}
+              />
+            ))
+          )}
         </Section>
 
         <Section icon={Cloud} label="Remotes" defaultOpen>
@@ -222,6 +340,8 @@ export function Sidebar({
 function BranchItem({
   branch,
   active,
+  label,
+  indentPx = 12,
   onCheckout,
   onCreateFrom,
   onDelete,
@@ -230,6 +350,8 @@ function BranchItem({
 }: {
   branch: GitRef
   active: boolean
+  label?: string // shown instead of branch.name (grouped view shows the leaf segment)
+  indentPx?: number
   onCheckout: () => void
   onCreateFrom: () => void
   onDelete: () => void
@@ -241,14 +363,15 @@ function BranchItem({
       <ContextMenuTrigger asChild>
         <button
           onClick={onCheckout}
-          className={`w-full flex items-center gap-1.5 pl-3 pr-2 py-1 rounded-md text-[12px] transition-colors ${
+          style={{ paddingLeft: indentPx }}
+          className={`w-full flex items-center gap-1.5 pr-2 py-1 rounded-md text-[12px] transition-colors ${
             active
               ? 'bg-sidebar-accent text-sidebar-accent-foreground font-semibold'
               : 'text-sidebar-foreground hover:bg-sidebar-hover'
           }`}
         >
           <GitBranch className={`size-3.5 shrink-0 ${active ? '' : 'text-sidebar-muted'}`} />
-          <span className="truncate">{branch.name}</span>
+          <span className="truncate">{label ?? branch.name}</span>
           {(branch.ahead !== undefined || branch.behind !== undefined) && (
             <span className={`ml-auto flex items-center gap-0.5 text-[10px] font-mono shrink-0 ${active ? 'text-primary-foreground/70' : 'text-sidebar-muted'}`}>
               {branch.ahead !== undefined && branch.ahead > 0 && <span className="text-graph-2">↑{branch.ahead}</span>}
