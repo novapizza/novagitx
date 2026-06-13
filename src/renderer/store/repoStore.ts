@@ -12,6 +12,7 @@ interface RepoStore {
   recentRepos: RecentRepo[]
   setRepo: (info: RepoInfo) => void
   clearRepo: () => void
+  removeRecent: (path: string) => void
 }
 
 export const useRepoStore = create<RepoStore>()(
@@ -28,6 +29,13 @@ export const useRepoStore = create<RepoStore>()(
           ].slice(0, 10),
         })),
       clearRepo: () => set({ repoInfo: null }),
+      // Forget a repo from the recent list. If it's the currently-open repo,
+      // also unload it back to the Welcome screen.
+      removeRecent: (path) =>
+        set((state) => ({
+          recentRepos: state.recentRepos.filter((r) => r.path !== path),
+          repoInfo: state.repoInfo?.path === path ? null : state.repoInfo,
+        })),
     }),
     {
       name: 'nova-git-x-repo',
