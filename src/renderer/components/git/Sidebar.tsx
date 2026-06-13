@@ -1,4 +1,4 @@
-import { ChevronRight, GitBranch, Cloud, Tag, Archive, Folder, GitMerge, Trash2, Plus, RotateCcw, FolderOpen, ChevronDown, Pencil, Upload, ArrowDownToLine, Link, Scissors } from 'lucide-react'
+import { ChevronRight, GitBranch, Cloud, Tag, Archive, Folder, GitMerge, Trash2, Plus, RotateCcw, FolderOpen, ChevronDown, Pencil, Upload, ArrowDownToLine, Link, Scissors, X } from 'lucide-react'
 import { useState } from 'react'
 import type { RefGroups, GitRef } from '@/types/git'
 import { initials, hashColor } from '@/types/git'
@@ -165,7 +165,7 @@ export function Sidebar({
   onPopStash,
 }: SidebarProps) {
   const abbr = initials(repoName)
-  const { recentRepos, setRepo } = useRepoStore()
+  const { recentRepos, setRepo, removeRecent } = useRepoStore()
   const branchView = useUiStore((s) => s.branchView)
   const [switchLoading, setSwitchLoading] = useState(false)
 
@@ -224,10 +224,24 @@ export function Sidebar({
                 key={r.path}
                 onClick={() => switchToPath(r.path)}
                 disabled={switchLoading}
-                className="flex flex-col items-start gap-0 py-2"
+                className="group flex items-center gap-2 py-2"
               >
-                <span className="text-[12.5px] font-medium">{r.name}</span>
-                <span className="text-[10.5px] text-muted-foreground font-mono truncate w-full">{r.path}</span>
+                <div className="flex flex-col items-start gap-0 min-w-0 flex-1">
+                  <span className="text-[12.5px] font-medium truncate w-full">{r.name}</span>
+                  <span className="text-[10.5px] text-muted-foreground font-mono truncate w-full">{r.path}</span>
+                </div>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation()
+                    e.preventDefault()
+                    removeRecent(r.path)
+                  }}
+                  title="Remove from recent"
+                  aria-label={`Remove ${r.name} from recent`}
+                  className="p-1 rounded-md text-muted-foreground opacity-0 group-hover:opacity-100 hover:bg-muted hover:text-foreground transition-opacity shrink-0"
+                >
+                  <X className="size-3.5" />
+                </button>
               </DropdownMenuItem>
             ))}
             {otherRepos.length > 0 && <DropdownMenuSeparator />}
