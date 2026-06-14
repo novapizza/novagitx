@@ -145,4 +145,44 @@ export const CHANNELS = {
   UPDATE_INSTALL: 'app:update:install', // renderer → main: quit and install
   UPDATE_STATUS:  'app:update:status',  // main → renderer: push status changes
   UPDATE_MANUAL:  'app:update:manual',  // main → renderer: a user-initiated check began
+
+  // ── GitHub ────────────────────────────────────────────────────────────────
+  // Auth / multi-account
+  GITHUB_AUTH_START:        'github:auth:start',        // begin device flow → DeviceCodeResponse
+  GITHUB_AUTH_POLL:         'github:auth:poll',         // poll until authorized → GhAccount | null
+  GITHUB_AUTH_CANCEL:       'github:auth:cancel',       // stop an in-progress poll
+  GITHUB_AUTH_STATUS:       'github:auth:status',       // main → renderer: live poll status
+  GITHUB_ACCOUNTS_LIST:     'github:accounts:list',
+  GITHUB_ACCOUNT_SET_ACTIVE:'github:accounts:set-active',
+  GITHUB_SIGN_OUT:          'github:accounts:sign-out',
+  GITHUB_SIGN_OUT_ALL:      'github:accounts:sign-out-all',
+
+  // Repos
+  GITHUB_REPOS_LIST:  'github:repos:list',
+  GITHUB_ORGS_LIST:   'github:orgs:list',
+  GITHUB_ORG_REPOS:   'github:orgs:repos',
+  GITHUB_REPOS_SEARCH:'github:repos:search',
+
+  // Pull Requests
+  GITHUB_PR_LIST:      'github:pr:list',
+  GITHUB_PR_GET:       'github:pr:get',
+  GITHUB_PR_REVIEWS:   'github:pr:reviews',
+  GITHUB_PR_CREATE:    'github:pr:create',
+  GITHUB_PR_MERGE:     'github:pr:merge',
+  GITHUB_PR_UPDATE:    'github:pr:update',
+  GITHUB_PR_REVIEWERS: 'github:pr:reviewers',
+
+  // Issues
+  GITHUB_ISSUE_LIST:     'github:issue:list',
+  GITHUB_ISSUE_GET:      'github:issue:get',
+  GITHUB_ISSUE_CREATE:   'github:issue:create',
+  GITHUB_ISSUE_UPDATE:   'github:issue:update',
+  GITHUB_ISSUE_COMMENTS: 'github:issue:comments',
+  GITHUB_ISSUE_COMMENT:  'github:issue:comment',
+  GITHUB_LABELS_LIST:    'github:labels:list',
+
+  // Actions / CI
+  GITHUB_RUNS_LIST:     'github:runs:list',
+  GITHUB_COMMIT_STATUS: 'github:commit:status',
+  GITHUB_RUN_RERUN:     'github:run:rerun',
 } as const

@@ -1,14 +1,18 @@
 import { useState } from 'react'
-import { FolderOpen, Clock, GitMerge, Plus, X } from 'lucide-react'
+import { FolderOpen, Clock, GitMerge, Plus, X, Github } from 'lucide-react'
 import { gitApi } from '@/api/git'
 import { useRepoStore } from '@/store/repoStore'
 import { CloneDialog } from '@/components/git/CloneDialog'
+import { GitHubReposDialog } from '@/components/github/GitHubReposDialog'
+import { GitHubAuthDialog } from '@/components/github/GitHubAuthDialog'
 
 export default function Welcome() {
   const { setRepo, recentRepos, removeRecent } = useRepoStore()
   const [loading, setLoading] = useState(false)
   const [failedPath, setFailedPath] = useState<string | null>(null)
   const [cloneOpen, setCloneOpen] = useState(false)
+  const [ghReposOpen, setGhReposOpen] = useState(false)
+  const [ghAuthOpen, setGhAuthOpen] = useState(false)
 
   async function openRepo() {
     setLoading(true)
@@ -81,6 +85,15 @@ export default function Welcome() {
           </button>
         </div>
 
+        <button
+          onClick={() => setGhReposOpen(true)}
+          disabled={loading}
+          className="flex items-center gap-2 h-9 px-4 rounded-lg border border-border bg-background text-foreground text-[12.5px] font-medium hover:bg-muted transition-colors disabled:opacity-50"
+        >
+          <Github className="size-4" />
+          Browse GitHub repositories…
+        </button>
+
         {recentRepos.length > 0 && (
           <div className="w-full">
             <div className="flex items-center gap-1.5 mb-2 text-[10.5px] uppercase tracking-wider font-semibold text-muted-foreground">
@@ -131,6 +144,12 @@ export default function Welcome() {
       </div>
 
       <CloneDialog open={cloneOpen} onClose={() => setCloneOpen(false)} />
+      <GitHubReposDialog
+        open={ghReposOpen}
+        onClose={() => setGhReposOpen(false)}
+        onRequireSignIn={() => setGhAuthOpen(true)}
+      />
+      <GitHubAuthDialog open={ghAuthOpen} onClose={() => setGhAuthOpen(false)} />
     </div>
   )
 }

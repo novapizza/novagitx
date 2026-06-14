@@ -2,6 +2,7 @@ import { useRef, useState, useEffect, useLayoutEffect, memo } from 'react'
 import { flushSync } from 'react-dom'
 import type { GitRevision, GitRef } from '@/types/git'
 import { hashColor, initials } from '@/types/git'
+import { CiStatusBadge } from '@/components/github/CiStatusBadge'
 import {
   ContextMenu,
   ContextMenuContent,
@@ -48,6 +49,11 @@ interface CommitGraphProps {
   // scrolls back to the top — switching branches should show the newest commits, not
   // wherever the previous view was scrolled to.
   resetScrollKey?: string
+  // GitHub CI badges: when ciEnabled and the repo is GitHub-linked, each row shows a
+  // combined-status dot fetched (and cached) per commit SHA.
+  ghOwner?: string | null
+  ghRepo?: string | null
+  ciEnabled?: boolean
 }
 
 // Column widths — shared between header and rows so they stay aligned.
@@ -80,6 +86,9 @@ export function CommitGraph({
   onReachEnd,
   isFetchingMore,
   resetScrollKey,
+  ghOwner,
+  ghRepo,
+  ciEnabled,
 }: CommitGraphProps) {
   const scrollRef = useRef<HTMLDivElement>(null)
   const [scrollTop, setScrollTop] = useState(0)
@@ -258,6 +267,9 @@ export function CommitGraph({
                 onCherryPick={onCherryPick}
                 onRevert={onRevert}
                 onResetTo={onResetTo}
+                ghOwner={ghOwner}
+                ghRepo={ghRepo}
+                ciEnabled={ciEnabled}
               />
             ))}
           </div>
@@ -288,6 +300,9 @@ interface RowProps {
   onCherryPick?: (hash: string) => void
   onRevert?: (hash: string) => void
   onResetTo?: (hash: string, mode: 'soft' | 'mixed' | 'hard') => void
+  ghOwner?: string | null
+  ghRepo?: string | null
+  ciEnabled?: boolean
 }
 
 const CommitRow = memo(function CommitRow({
@@ -303,6 +318,9 @@ const CommitRow = memo(function CommitRow({
   onCherryPick,
   onRevert,
   onResetTo,
+  ghOwner,
+  ghRepo,
+  ciEnabled,
 }: RowProps) {
   return (
     <ContextMenu>
@@ -315,6 +333,9 @@ const CommitRow = memo(function CommitRow({
           <div className="flex items-center overflow-hidden shrink-0" style={{ width: graphW + msgW }}>
             <GraphCell commit={c} next={next} graphW={graphW} />
             <Refs refs={c.refs} />
+            {ciEnabled && (
+              <CiStatusBadge owner={ghOwner ?? null} repo={ghRepo ?? null} sha={c.objectId} enabled={!!ciEnabled} />
+            )}
             <span className="truncate text-[12px] text-foreground/90 pr-2">{c.subject}</span>
           </div>
           <div className="shrink-0 px-2" style={{ width: COL_AUTHOR }}>

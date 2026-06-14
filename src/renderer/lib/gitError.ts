@@ -96,6 +96,23 @@ export function describeGitError(error: unknown): GitErrorMessage {
     return describeOverwriteError(text)
   }
 
+  // GitHub API failures surface through the same MutationCache safety net.
+  if (/rate limit exceeded/i.test(text)) {
+    return { title: 'GitHub rate limit reached', description: firstMeaningfulLine(text) }
+  }
+  if (/bad credentials/i.test(text)) {
+    return {
+      title: 'GitHub sign-in expired',
+      description: 'Your GitHub token is no longer valid. Sign in again from Settings → GitHub.',
+    }
+  }
+  if (/not signed in to github/i.test(text)) {
+    return {
+      title: 'Not signed in to GitHub',
+      description: 'Sign in from Settings → GitHub to use this feature.',
+    }
+  }
+
   const detail = firstMeaningfulLine(text)
 
   if (isPermissionError(text)) {
