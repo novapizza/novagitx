@@ -41,6 +41,14 @@ import { FsckDialog } from '@/components/git/FsckDialog'
 import { MailmapEditor } from '@/components/git/MailmapEditor'
 import { SparseCheckoutDialog } from '@/components/git/SparseCheckoutDialog'
 import { SettingsDialog } from '@/components/git/SettingsDialog'
+import { GitHubToolbar } from '@/components/github/GitHubToolbar'
+import { PullRequestsPanel } from '@/components/github/PullRequestsPanel'
+import { IssuesPanel } from '@/components/github/IssuesPanel'
+import { ActionsPanel } from '@/components/github/ActionsPanel'
+import { GitHubReposDialog } from '@/components/github/GitHubReposDialog'
+import { GitHubAuthDialog } from '@/components/github/GitHubAuthDialog'
+import { useLinkedGitHubRepo, useGitHubAccounts } from '@/hooks/useGitHub'
+import { useGitHubStore } from '@/store/githubStore'
 import { useRepoStore } from '@/store/repoStore'
 import { gitApi } from '@/api/git'
 import {
@@ -137,6 +145,18 @@ export default function Repository() {
   const [mailmapOpen, setMailmapOpen] = useState(false)
   const [sparseOpen, setSparseOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
+  const [settingsTab, setSettingsTab] = useState<'general' | 'github' | undefined>(undefined)
+  // GitHub
+  const [ghAuthOpen, setGhAuthOpen] = useState(false)
+  const [ghReposOpen, setGhReposOpen] = useState(false)
+  const ghPanel = useGitHubStore((s) => s.panel)
+  const setGhPanel = useGitHubStore((s) => s.setPanel)
+  const showCiBadges = useGitHubStore((s) => s.showCiBadges)
+  const { ref: ghRef, isGitHub } = useLinkedGitHubRepo(repoPath)
+  const { data: ghAccounts } = useGitHubAccounts()
+  const ghSignedIn = (ghAccounts?.accounts.length ?? 0) > 0
+  const ciEnabled = showCiBadges && ghSignedIn && isGitHub
+  const openManageAccounts = () => { setSettingsTab('github'); setSettingsOpen(true) }
 
   const [detailsPx, setDetailsPx] = useState(300)
   const dragRef = useRef<{ startY: number; startH: number } | null>(null)
@@ -368,6 +388,7 @@ export default function Repository() {
           onPush={() => setRemoteAction('push')}
           onOpenRepo={async () => { const info = await gitApi.openRepo(); if (info) setRepo(info) }}
           onCloneRepo={() => setCloneOpen(true)}
+          onBrowseGitHub={() => setGhReposOpen(true)}
           onInitRepo={async () => { const info = await gitApi.initRepo(); if (info) setRepo(info) }}
           onCreateBranch={() => setCreateBranch({ open: true, from: repoInfo.currentBranch ?? '' })}
           onRenameBranch={() => { if (repoInfo.currentBranch) setRenameBranchName(repoInfo.currentBranch) }}
@@ -380,7 +401,13 @@ export default function Repository() {
             const url = buildPullRequestUrl(origin.fetchUrl || origin.pushUrl, repoInfo.currentBranch)
             if (url) window.appOS.openExternal(url)
           }}
-          onOpenSettings={() => setSettingsOpen(true)}
+          onOpenSettings={() => { setSettingsTab(undefined); setSettingsOpen(true) }}
+          githubSlot={
+            <GitHubToolbar
+              onAddAccount={() => setGhAuthOpen(true)}
+              onManageAccounts={openManageAccounts}
+            />
+          }
           isFetching={remoteMutations.fetch.isPending}
           isPulling={remoteMutations.pull.isPending}
           isPushing={remoteMutations.push.isPending}
@@ -519,6 +546,9 @@ export default function Repository() {
               onReachEnd={() => { if (hasNextPage && !isFetchingNextPage) fetchNextPage() }}
               isFetchingMore={isFetchingNextPage}
               resetScrollKey={`${repoPath}::${repoInfo.currentBranch ?? 'detached'}::${JSON.stringify(logFilter)}`}
+              ghOwner={ghRef?.owner ?? null}
+              ghRepo={ghRef?.repo ?? null}
+              ciEnabled={ciEnabled}
             />
 
             <div
@@ -554,6 +584,39 @@ export default function Repository() {
                   onClose={() => setReflogOpen(false)}
                   onCheckout={(hash) => branchMutations.checkout.mutate(hash)}
                 />
+              </div>
+            )}
+
+            {ghPanel && (
+              <div className="w-[360px] shrink-0 border-l border-border overflow-hidden flex flex-col">
+                {ghPanel === 'pull-requests' && (
+                  <PullRequestsPanel
+                    repoPath={repoPath}
+                    owner={ghRef?.owner ?? null}
+                    repo={ghRef?.repo ?? null}
+                    isGitHub={isGitHub}
+                    currentBranch={repoInfo.currentBranch}
+                    defaultBase="main"
+                    defaultTitle={commits[0]?.subject}
+                    onClose={() => setGhPanel(null)}
+                  />
+                )}
+                {ghPanel === 'issues' && (
+                  <IssuesPanel
+                    owner={ghRef?.owner ?? null}
+                    repo={ghRef?.repo ?? null}
+                    isGitHub={isGitHub}
+                    onClose={() => setGhPanel(null)}
+                  />
+                )}
+                {ghPanel === 'actions' && (
+                  <ActionsPanel
+                    owner={ghRef?.owner ?? null}
+                    repo={ghRef?.repo ?? null}
+                    isGitHub={isGitHub}
+                    onClose={() => setGhPanel(null)}
+                  />
+                )}
               </div>
             )}
           </section>
@@ -691,7 +754,14 @@ export default function Repository() {
       <FsckDialog open={fsckOpen} onOpenChange={setFsckOpen} repoPath={repoPath} />
       <MailmapEditor open={mailmapOpen} onOpenChange={setMailmapOpen} repoPath={repoPath} />
       <SparseCheckoutDialog open={sparseOpen} onOpenChange={setSparseOpen} repoPath={repoPath} />
-      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} repoPath={repoPath} />
+      <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} repoPath={repoPath} initialTab={settingsTab} />
+
+      <GitHubAuthDialog open={ghAuthOpen} onClose={() => setGhAuthOpen(false)} />
+      <GitHubReposDialog
+        open={ghReposOpen}
+        onClose={() => setGhReposOpen(false)}
+        onRequireSignIn={() => setGhAuthOpen(true)}
+      />
     </main>
   )
 }

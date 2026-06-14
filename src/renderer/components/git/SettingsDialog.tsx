@@ -1,16 +1,18 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Settings2, KeyRound, FileText, Copy, Plus, Loader2, Keyboard, GitBranch, SlidersHorizontal } from 'lucide-react'
+import { Settings2, KeyRound, FileText, Copy, Plus, Loader2, Keyboard, GitBranch, SlidersHorizontal, Github } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
 import { useGitConfig, useGitConfigMutations } from '@/hooks/useRepo'
 import { gitApi } from '@/api/git'
 import type { GitConfigEntry } from '@/types/git'
 import { HotkeysPanel } from '@/components/git/HotkeysPanel'
+import { GitHubAccountsPanel } from '@/components/github/GitHubAccountsPanel'
 import { useUiStore, type BranchView } from '@/store/uiStore'
 
 interface Props {
   open: boolean
   onOpenChange: (o: boolean) => void
   repoPath: string | null
+  initialTab?: Tab
 }
 
 const COMMON_KEYS = [
@@ -27,10 +29,15 @@ const COMMON_KEYS = [
   { key: 'init.defaultBranch', label: 'Default branch name' },
 ] as const
 
-type Tab = 'general' | 'config' | 'template' | 'ssh' | 'keys'
+type Tab = 'general' | 'github' | 'config' | 'template' | 'ssh' | 'keys'
 
-export function SettingsDialog({ open, onOpenChange, repoPath }: Props) {
+export function SettingsDialog({ open, onOpenChange, repoPath, initialTab }: Props) {
   const [tab, setTab] = useState<Tab>('general')
+
+  // Allow callers (e.g. "Manage accounts" in the title bar) to deep-link a tab.
+  useEffect(() => {
+    if (open && initialTab) setTab(initialTab)
+  }, [open, initialTab])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -43,6 +50,7 @@ export function SettingsDialog({ open, onOpenChange, repoPath }: Props) {
           {/* Left nav — fixed width so switching tabs never resizes the window */}
           <nav className="w-44 shrink-0 border-r border-border p-2 space-y-0.5 overflow-y-auto scrollbar-mac">
             <TabButton active={tab === 'general'} onClick={() => setTab('general')} icon={SlidersHorizontal}>General</TabButton>
+            <TabButton active={tab === 'github'} onClick={() => setTab('github')} icon={Github}>GitHub</TabButton>
             <TabButton active={tab === 'config'} onClick={() => setTab('config')} icon={Settings2}>Git config</TabButton>
             <TabButton active={tab === 'template'} onClick={() => setTab('template')} icon={FileText}>Commit template</TabButton>
             <TabButton active={tab === 'ssh'} onClick={() => setTab('ssh')} icon={KeyRound}>SSH keys</TabButton>
@@ -52,6 +60,7 @@ export function SettingsDialog({ open, onOpenChange, repoPath }: Props) {
           {/* Content — scrolls internally; the dialog keeps a constant size */}
           <div className="flex-1 min-h-0 overflow-y-auto scrollbar-mac p-5">
             {tab === 'general' && <GeneralPanel />}
+            {tab === 'github' && <GitHubAccountsPanel />}
             {tab === 'config' && <ConfigPanel repoPath={repoPath} open={open} />}
             {tab === 'template' && <TemplatePanel />}
             {tab === 'ssh' && <SshPanel open={open} />}

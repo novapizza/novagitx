@@ -2,7 +2,11 @@ import { ipcMain, dialog, nativeTheme, BrowserWindow } from 'electron/main'
 import { shell } from 'electron'
 import { CHANNELS } from './channels.js'
 import { GitModule } from '../git/GitModule.js'
+import { GitHubModule } from '../github/GitHubModule.js'
 import type { LogOptions, RebaseCommit } from '../git/types.js'
+import type {
+  AuthStatus, ListOptions, CreatePullRequestInput, CreateIssueInput, MergeMethod,
+} from '../github/types.js'
 import { existsSync, readFileSync, writeFileSync, readdirSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
@@ -13,6 +17,14 @@ const modules = new Map<string, GitModule>()
 function getModule(repoPath: string): GitModule {
   if (!modules.has(repoPath)) modules.set(repoPath, new GitModule(repoPath))
   return modules.get(repoPath)!
+}
+
+// GitHub is app-global (tied to the signed-in user, not a repo path), so a single
+// lazily-instantiated instance is cached here — mirroring getModule for git.
+let githubModule: GitHubModule | null = null
+function getGitHub(): GitHubModule {
+  if (!githubModule) githubModule = new GitHubModule()
+  return githubModule
 }
 
 export function registerHandlers(): void {
@@ -535,6 +547,71 @@ export function registerHandlers(): void {
     // error string shell.openPath produces ('' on success) so the renderer can surface it.
     return shell.openPath(fullPath)
   })
+
+  // ── GitHub ─────────────────────────────────────────────────────────────────
+
+  ipcMain.handle(CHANNELS.GITHUB_AUTH_START, async () => getGitHub().startDeviceFlow())
+
+  // Polls until authorized/denied/expired, pushing live status to the renderer.
+  ipcMain.handle(CHANNELS.GITHUB_AUTH_POLL, async (event, deviceCode: string, interval: number) => {
+    const sender = event.sender
+    const onStatus = (status: AuthStatus) => sender.send(CHANNELS.GITHUB_AUTH_STATUS, status)
+    return getGitHub().pollForToken(deviceCode, interval, onStatus)
+  })
+
+  ipcMain.handle(CHANNELS.GITHUB_AUTH_CANCEL, async () => getGitHub().cancelAuth())
+  ipcMain.handle(CHANNELS.GITHUB_ACCOUNTS_LIST, async () => getGitHub().listAccounts())
+  ipcMain.handle(CHANNELS.GITHUB_ACCOUNT_SET_ACTIVE, async (_, id: number) => getGitHub().setActiveAccount(id))
+  ipcMain.handle(CHANNELS.GITHUB_SIGN_OUT, async (_, id: number) => getGitHub().signOut(id))
+  ipcMain.handle(CHANNELS.GITHUB_SIGN_OUT_ALL, async () => getGitHub().signOutAll())
+
+  // Repos
+  ipcMain.handle(CHANNELS.GITHUB_REPOS_LIST, async () => getGitHub().listMyRepos())
+  ipcMain.handle(CHANNELS.GITHUB_ORGS_LIST, async () => getGitHub().listOrgs())
+  ipcMain.handle(CHANNELS.GITHUB_ORG_REPOS, async (_, org: string) => getGitHub().listOrgRepos(org))
+  ipcMain.handle(CHANNELS.GITHUB_REPOS_SEARCH, async (_, query: string) => getGitHub().searchRepos(query))
+
+  // Pull Requests
+  ipcMain.handle(CHANNELS.GITHUB_PR_LIST, async (_, owner: string, repo: string, opts?: ListOptions) =>
+    getGitHub().listPullRequests(owner, repo, opts))
+  ipcMain.handle(CHANNELS.GITHUB_PR_GET, async (_, owner: string, repo: string, num: number) =>
+    getGitHub().getPullRequest(owner, repo, num))
+  ipcMain.handle(CHANNELS.GITHUB_PR_REVIEWS, async (_, owner: string, repo: string, num: number) =>
+    getGitHub().getPullRequestReviews(owner, repo, num))
+  ipcMain.handle(CHANNELS.GITHUB_PR_CREATE, async (_, owner: string, repo: string, input: CreatePullRequestInput) =>
+    getGitHub().createPullRequest(owner, repo, input))
+  ipcMain.handle(CHANNELS.GITHUB_PR_MERGE, async (_, owner: string, repo: string, num: number, method: MergeMethod) =>
+    getGitHub().mergePullRequest(owner, repo, num, method))
+  ipcMain.handle(CHANNELS.GITHUB_PR_UPDATE, async (
+    _, owner: string, repo: string, num: number, patch: { state?: 'open' | 'closed'; title?: string; body?: string },
+  ) => getGitHub().updatePullRequest(owner, repo, num, patch))
+  ipcMain.handle(CHANNELS.GITHUB_PR_REVIEWERS, async (_, owner: string, repo: string, num: number, reviewers: string[]) =>
+    getGitHub().requestReviewers(owner, repo, num, reviewers))
+
+  // Issues
+  ipcMain.handle(CHANNELS.GITHUB_ISSUE_LIST, async (_, owner: string, repo: string, opts?: ListOptions) =>
+    getGitHub().listIssues(owner, repo, opts))
+  ipcMain.handle(CHANNELS.GITHUB_ISSUE_GET, async (_, owner: string, repo: string, num: number) =>
+    getGitHub().getIssue(owner, repo, num))
+  ipcMain.handle(CHANNELS.GITHUB_ISSUE_CREATE, async (_, owner: string, repo: string, input: CreateIssueInput) =>
+    getGitHub().createIssue(owner, repo, input))
+  ipcMain.handle(CHANNELS.GITHUB_ISSUE_UPDATE, async (
+    _, owner: string, repo: string, num: number, patch: { state?: 'open' | 'closed'; title?: string; body?: string },
+  ) => getGitHub().updateIssue(owner, repo, num, patch))
+  ipcMain.handle(CHANNELS.GITHUB_ISSUE_COMMENTS, async (_, owner: string, repo: string, num: number) =>
+    getGitHub().listIssueComments(owner, repo, num))
+  ipcMain.handle(CHANNELS.GITHUB_ISSUE_COMMENT, async (_, owner: string, repo: string, num: number, body: string) =>
+    getGitHub().addIssueComment(owner, repo, num, body))
+  ipcMain.handle(CHANNELS.GITHUB_LABELS_LIST, async (_, owner: string, repo: string) =>
+    getGitHub().listLabels(owner, repo))
+
+  // Actions / CI
+  ipcMain.handle(CHANNELS.GITHUB_RUNS_LIST, async (_, owner: string, repo: string) =>
+    getGitHub().listWorkflowRuns(owner, repo))
+  ipcMain.handle(CHANNELS.GITHUB_COMMIT_STATUS, async (_, owner: string, repo: string, sha: string) =>
+    getGitHub().getCommitStatus(owner, repo, sha))
+  ipcMain.handle(CHANNELS.GITHUB_RUN_RERUN, async (_, owner: string, repo: string, runId: number) =>
+    getGitHub().rerunWorkflow(owner, repo, runId))
 }
 
 function expandHome(p: string): string {

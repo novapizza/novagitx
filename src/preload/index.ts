@@ -289,9 +289,80 @@ const gitApi = {
     ipcRenderer.invoke(CHANNELS.SSH_GENERATE, args),
 }
 
+import type {
+  GhAccount, AccountsState, DeviceCodeResponse, AuthStatus, GhRepo, GhPullRequest,
+  GhReview, GhIssue, GhComment, GhWorkflowRun, GhCommitStatus, ListOptions,
+  CreatePullRequestInput, CreateIssueInput, MergeMethod, GhLabel,
+} from '../main/github/types.js'
+
+const githubApi = {
+  // Auth / accounts
+  startDeviceFlow: (): Promise<DeviceCodeResponse> => ipcRenderer.invoke(CHANNELS.GITHUB_AUTH_START),
+  pollForToken: (deviceCode: string, interval: number): Promise<GhAccount | null> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_AUTH_POLL, deviceCode, interval),
+  cancelAuth: (): Promise<void> => ipcRenderer.invoke(CHANNELS.GITHUB_AUTH_CANCEL),
+  onAuthStatus: (cb: (status: AuthStatus) => void) => {
+    const listener = (_: Electron.IpcRendererEvent, status: AuthStatus) => cb(status)
+    ipcRenderer.on(CHANNELS.GITHUB_AUTH_STATUS, listener)
+    return () => ipcRenderer.removeListener(CHANNELS.GITHUB_AUTH_STATUS, listener)
+  },
+  listAccounts: (): Promise<AccountsState> => ipcRenderer.invoke(CHANNELS.GITHUB_ACCOUNTS_LIST),
+  setActiveAccount: (id: number): Promise<AccountsState> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_ACCOUNT_SET_ACTIVE, id),
+  signOut: (id: number): Promise<AccountsState> => ipcRenderer.invoke(CHANNELS.GITHUB_SIGN_OUT, id),
+  signOutAll: (): Promise<AccountsState> => ipcRenderer.invoke(CHANNELS.GITHUB_SIGN_OUT_ALL),
+
+  // Repos
+  listMyRepos: (): Promise<GhRepo[]> => ipcRenderer.invoke(CHANNELS.GITHUB_REPOS_LIST),
+  listOrgs: (): Promise<string[]> => ipcRenderer.invoke(CHANNELS.GITHUB_ORGS_LIST),
+  listOrgRepos: (org: string): Promise<GhRepo[]> => ipcRenderer.invoke(CHANNELS.GITHUB_ORG_REPOS, org),
+  searchRepos: (query: string): Promise<GhRepo[]> => ipcRenderer.invoke(CHANNELS.GITHUB_REPOS_SEARCH, query),
+
+  // Pull Requests
+  listPullRequests: (owner: string, repo: string, opts?: ListOptions): Promise<GhPullRequest[]> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_PR_LIST, owner, repo, opts),
+  getPullRequest: (owner: string, repo: string, num: number): Promise<GhPullRequest> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_PR_GET, owner, repo, num),
+  getPullRequestReviews: (owner: string, repo: string, num: number): Promise<GhReview[]> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_PR_REVIEWS, owner, repo, num),
+  createPullRequest: (owner: string, repo: string, input: CreatePullRequestInput): Promise<GhPullRequest> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_PR_CREATE, owner, repo, input),
+  mergePullRequest: (owner: string, repo: string, num: number, method: MergeMethod): Promise<void> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_PR_MERGE, owner, repo, num, method),
+  updatePullRequest: (owner: string, repo: string, num: number, patch: { state?: 'open' | 'closed'; title?: string; body?: string }): Promise<GhPullRequest> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_PR_UPDATE, owner, repo, num, patch),
+  requestReviewers: (owner: string, repo: string, num: number, reviewers: string[]): Promise<void> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_PR_REVIEWERS, owner, repo, num, reviewers),
+
+  // Issues
+  listIssues: (owner: string, repo: string, opts?: ListOptions): Promise<GhIssue[]> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_ISSUE_LIST, owner, repo, opts),
+  getIssue: (owner: string, repo: string, num: number): Promise<GhIssue> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_ISSUE_GET, owner, repo, num),
+  createIssue: (owner: string, repo: string, input: CreateIssueInput): Promise<GhIssue> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_ISSUE_CREATE, owner, repo, input),
+  updateIssue: (owner: string, repo: string, num: number, patch: { state?: 'open' | 'closed'; title?: string; body?: string }): Promise<GhIssue> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_ISSUE_UPDATE, owner, repo, num, patch),
+  listIssueComments: (owner: string, repo: string, num: number): Promise<GhComment[]> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_ISSUE_COMMENTS, owner, repo, num),
+  addIssueComment: (owner: string, repo: string, num: number, body: string): Promise<GhComment> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_ISSUE_COMMENT, owner, repo, num, body),
+  listLabels: (owner: string, repo: string): Promise<GhLabel[]> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_LABELS_LIST, owner, repo),
+
+  // Actions / CI
+  listWorkflowRuns: (owner: string, repo: string): Promise<GhWorkflowRun[]> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_RUNS_LIST, owner, repo),
+  getCommitStatus: (owner: string, repo: string, sha: string): Promise<GhCommitStatus> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_COMMIT_STATUS, owner, repo, sha),
+  rerunWorkflow: (owner: string, repo: string, runId: number): Promise<void> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_RUN_RERUN, owner, repo, runId),
+}
+
 contextBridge.exposeInMainWorld('git', gitApi)
 contextBridge.exposeInMainWorld('theme', themeApi)
 contextBridge.exposeInMainWorld('appOS', appApi)
+contextBridge.exposeInMainWorld('github', githubApi)
 
 export type GitApi = typeof gitApi
 export type ThemeApi = typeof themeApi

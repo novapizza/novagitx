@@ -20,12 +20,15 @@ interface TitleBarProps {
   onPush?: () => void
   onOpenRepo?: () => void
   onCloneRepo?: () => void
+  onBrowseGitHub?: () => void
   onInitRepo?: () => void
   onCreateBranch?: () => void
   onRenameBranch?: () => void
   onMerge?: () => void
   onOpenPR?: () => void
   onOpenSettings?: () => void
+  /** GitHub controls (account switcher + panel toggles), composed by the page. */
+  githubSlot?: ReactNode
   isFetching?: boolean
   isPulling?: boolean
   isPushing?: boolean
@@ -41,12 +44,14 @@ export function TitleBar({
   onPush,
   onOpenRepo,
   onCloneRepo,
+  onBrowseGitHub,
   onInitRepo,
   onCreateBranch,
   onRenameBranch,
   onMerge,
   onOpenPR,
   onOpenSettings,
+  githubSlot,
   isFetching,
   isPulling,
   isPushing,
@@ -116,6 +121,8 @@ export function TitleBar({
         <ToolbarButton icon={GitMerge} label="Merge" tooltip="Merge a branch into current" onClick={onMerge} />
         <ToolbarButton icon={GitPullRequest} label="PR" tooltip="Open pull request on web" onClick={onOpenPR} />
         <Divider />
+        {githubSlot}
+        {githubSlot && <Divider />}
         <WithTooltip label="Open / clone / new repository">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
@@ -126,6 +133,7 @@ export function TitleBar({
             <DropdownMenuContent align="end">
               <DropdownMenuItem onClick={onOpenRepo}>Open repository…</DropdownMenuItem>
               <DropdownMenuItem onClick={onCloneRepo}>Clone repository…</DropdownMenuItem>
+              <DropdownMenuItem onClick={onBrowseGitHub}>Clone from GitHub…</DropdownMenuItem>
               <DropdownMenuItem onClick={onInitRepo}>New repository…</DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
