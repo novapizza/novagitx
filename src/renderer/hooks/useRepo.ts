@@ -732,3 +732,65 @@ export function useGitConfigMutations(repoPath: string | null) {
   })
   return { set, unset }
 }
+
+// ── Bisect ────────────────────────────────────────────────────────────────────
+
+export function useBisectStatus(repoPath: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ['bisect', repoPath],
+    queryFn: () => gitApi.getBisectStatus(repoPath!),
+    enabled: !!repoPath && enabled,
+    staleTime: 2_000,
+  })
+}
+
+export function useBisectMutations(repoPath: string | null) {
+  const qc = useQueryClient()
+  // A bisect step checks out a different commit, so the whole working view moves.
+  const inv = () => {
+    qc.invalidateQueries({ queryKey: ['bisect', repoPath] })
+    qc.invalidateQueries({ queryKey: ['log', repoPath] })
+    qc.invalidateQueries({ queryKey: ['refs', repoPath] })
+    qc.invalidateQueries({ queryKey: ['status', repoPath] })
+  }
+  const start = useMutation({
+    mutationFn: ({ bad, good }: { bad?: string; good?: string }) => gitApi.bisectStart(repoPath!, bad, good),
+    onSuccess: inv,
+  })
+  const mark = useMutation({
+    mutationFn: ({ term, rev }: { term: 'good' | 'bad'; rev?: string }) => gitApi.bisectMark(repoPath!, term, rev),
+    onSuccess: inv,
+  })
+  const skip = useMutation({
+    mutationFn: (rev?: string) => gitApi.bisectSkip(repoPath!, rev),
+    onSuccess: inv,
+  })
+  const reset = useMutation({
+    mutationFn: () => gitApi.bisectReset(repoPath!),
+    onSuccess: inv,
+  })
+  return { start, mark, skip, reset }
+}
+
+// ── Git LFS ─────────────────────────────────────────────────────────────────
+
+export function useLfsStatus(repoPath: string | null, enabled: boolean) {
+  return useQuery({
+    queryKey: ['lfs', repoPath],
+    queryFn: () => gitApi.lfsStatus(repoPath!),
+    enabled: !!repoPath && enabled,
+    staleTime: 5_000,
+  })
+}
+
+export function useLfsMutations(repoPath: string | null) {
+  const qc = useQueryClient()
+  const inv = () => {
+    qc.invalidateQueries({ queryKey: ['lfs', repoPath] })
+    qc.invalidateQueries({ queryKey: ['status', repoPath] })
+  }
+  const install = useMutation({ mutationFn: () => gitApi.lfsInstall(repoPath!), onSuccess: inv })
+  const track = useMutation({ mutationFn: (pattern: string) => gitApi.lfsTrack(repoPath!, pattern), onSuccess: inv })
+  const untrack = useMutation({ mutationFn: (pattern: string) => gitApi.lfsUntrack(repoPath!, pattern), onSuccess: inv })
+  return { install, track, untrack }
+}

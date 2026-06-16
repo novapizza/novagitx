@@ -548,6 +548,39 @@ export function registerHandlers(): void {
     return shell.openPath(fullPath)
   })
 
+  // ── Bisect ────────────────────────────────────────────────────────────────
+
+  ipcMain.handle(CHANNELS.BISECT_STATUS, async (_, repoPath: string) => {
+    return getModule(repoPath).getBisectStatus()
+  })
+  ipcMain.handle(CHANNELS.BISECT_START, async (_, repoPath: string, bad?: string, good?: string) => {
+    return getModule(repoPath).bisectStart(bad, good)
+  })
+  ipcMain.handle(CHANNELS.BISECT_MARK, async (_, repoPath: string, term: 'good' | 'bad', rev?: string) => {
+    return getModule(repoPath).bisectMark(term, rev)
+  })
+  ipcMain.handle(CHANNELS.BISECT_SKIP, async (_, repoPath: string, rev?: string) => {
+    return getModule(repoPath).bisectSkip(rev)
+  })
+  ipcMain.handle(CHANNELS.BISECT_RESET, async (_, repoPath: string) => {
+    return getModule(repoPath).bisectReset()
+  })
+
+  // ── Git LFS ───────────────────────────────────────────────────────────────
+
+  ipcMain.handle(CHANNELS.LFS_STATUS, async (_, repoPath: string) => {
+    return getModule(repoPath).lfsStatus()
+  })
+  ipcMain.handle(CHANNELS.LFS_INSTALL, async (_, repoPath: string) => {
+    await getModule(repoPath).lfsInstall()
+  })
+  ipcMain.handle(CHANNELS.LFS_TRACK, async (_, repoPath: string, pattern: string) => {
+    await getModule(repoPath).lfsTrack(pattern)
+  })
+  ipcMain.handle(CHANNELS.LFS_UNTRACK, async (_, repoPath: string, pattern: string) => {
+    await getModule(repoPath).lfsUntrack(pattern)
+  })
+
   // ── GitHub ─────────────────────────────────────────────────────────────────
 
   ipcMain.handle(CHANNELS.GITHUB_AUTH_START, async () => getGitHub().startDeviceFlow())
