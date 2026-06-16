@@ -95,6 +95,11 @@ export class TokenStore {
 
   setActiveId(accountId: number): void {
     if (!this.data.accounts.some((a) => a.id === accountId)) return
+    // No-op guard: re-selecting the already-active account changes nothing.
+    // Skipping persist() here avoids a redundant safeStorage.encryptString()
+    // (and thus a second macOS Keychain prompt) on startup when the UI sets
+    // the active account to the one that's already active.
+    if (this.data.activeAccountId === accountId) return
     this.data.activeAccountId = accountId
     this.persist()
   }

@@ -45,6 +45,8 @@ module.exports = {
     category: 'public.app-category.developer-tools',
     icon: 'build/icon.icns',
     hardenedRuntime: true,
+    entitlements: 'build/entitlements.mac.plist',
+    entitlementsInherit: 'build/entitlements.mac.plist',
     gatekeeperAssess: false,
     artifactName: '${productName}-${version}-${arch}-mac.${ext}',
     target: [

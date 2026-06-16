@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+  <!--
+    Hardened-runtime entitlements for the Developer ID signed build.
+    Electron requires JIT + unsigned executable memory for V8, and
+    disable-library-validation so the bundled native/Electron Framework
+    libraries load under the hardened runtime.
+
+    Keeping these in an explicit, version-controlled file (rather than
+    letting electron-builder auto-generate them) makes the code signature
+    deterministic across builds. That matters for the Keychain: the
+    "Safe Storage" item's ACL is bound to the signing identity, so a
+    stable signature lets macOS remember "Always Allow" instead of
+    re-prompting on every launch.
+  -->
+  <key>com.apple.security.cs.allow-jit</key>
+  <true/>
+  <key>com.apple.security.cs.allow-unsigned-executable-memory</key>
+  <true/>
+  <key>com.apple.security.cs.disable-library-validation</key>
+  <true/>
+</dict>
+</plist>
