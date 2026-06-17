@@ -105,6 +105,47 @@ function BranchTree(props: BranchTreeProps) {
   )
 }
 
+interface RemoteBranchTreeProps {
+  nodes: BranchNode[]
+  depth: number
+  onSelectRef?: (objectId: string) => void
+  onCheckoutRemote?: (remoteBranch: string) => void
+}
+
+// Same folder-tree rendering as BranchTree, but leaves are RemoteBranchItems.
+// Branches sit one level under the remote's Group, so the base indent is deeper.
+function RemoteBranchTree(props: RemoteBranchTreeProps) {
+  const { nodes, depth, onSelectRef, onCheckoutRemote } = props
+  // 28px base (matches the flat pl-7) + 14px per nesting level.
+  const indentPx = 28 + depth * 14
+  return (
+    <>
+      {nodes.map((node) =>
+        node.children.length ? (
+          <BranchFolder key={node.path} label={node.name} indentPx={indentPx}>
+            <RemoteBranchTree {...props} nodes={node.children} depth={depth + 1} />
+          </BranchFolder>
+        ) : (
+          node.branch && (
+            <RemoteBranchItem
+              key={node.path}
+              branch={node.branch}
+              label={node.name}
+              indentPx={indentPx}
+              onSelect={onSelectRef ? () => onSelectRef(node.branch!.objectId) : undefined}
+              onCheckout={
+                onCheckoutRemote
+                  ? () => onCheckoutRemote(node.branch!.completeName.replace('refs/remotes/', ''))
+                  : undefined
+              }
+            />
+          )
+        )
+      )}
+    </>
+  )
+}
+
 function BranchFolder({ label, indentPx, children }: { label: string; indentPx: number; children: React.ReactNode }) {
   const [open, setOpen] = useState(true)
   return (
@@ -302,14 +343,23 @@ export function Sidebar({
               defaultOpen
               onPrune={onPruneRemote ? () => onPruneRemote(remote) : undefined}
             >
-              {branches.map((b) => (
-                <RemoteBranchItem
-                  key={b.completeName}
-                  branch={b}
-                  onSelect={onSelectRef ? () => onSelectRef(b.objectId) : undefined}
-                  onCheckout={onCheckoutRemote ? () => onCheckoutRemote(b.completeName.replace('refs/remotes/', '')) : undefined}
+              {branchView === 'grouped' ? (
+                <RemoteBranchTree
+                  nodes={buildBranchTree(branches)}
+                  depth={0}
+                  onSelectRef={onSelectRef}
+                  onCheckoutRemote={onCheckoutRemote}
                 />
-              ))}
+              ) : (
+                branches.map((b) => (
+                  <RemoteBranchItem
+                    key={b.completeName}
+                    branch={b}
+                    onSelect={onSelectRef ? () => onSelectRef(b.objectId) : undefined}
+                    onCheckout={onCheckoutRemote ? () => onCheckoutRemote(b.completeName.replace('refs/remotes/', '')) : undefined}
+                  />
+                ))
+              )}
             </Group>
           ))}
         </Section>
@@ -516,16 +566,29 @@ function Group({ label, children, defaultOpen = false, onPrune }: any) {
   )
 }
 
-function RemoteBranchItem({ branch, onSelect, onCheckout }: { branch: GitRef; onSelect?: () => void; onCheckout?: () => void }) {
+function RemoteBranchItem({
+  branch,
+  label,
+  indentPx = 28,
+  onSelect,
+  onCheckout,
+}: {
+  branch: GitRef
+  label?: string // shown instead of branch.name (grouped view shows the leaf segment)
+  indentPx?: number
+  onSelect?: () => void
+  onCheckout?: () => void
+}) {
   return (
     <ContextMenu>
       <ContextMenuTrigger asChild>
         <button
           onClick={onSelect}
-          className="w-full flex items-center gap-1.5 pl-7 pr-2 py-1 rounded-md text-[12px] transition-colors text-sidebar-foreground hover:bg-sidebar-hover"
+          style={{ paddingLeft: indentPx }}
+          className="w-full flex items-center gap-1.5 pr-2 py-1 rounded-md text-[12px] transition-colors text-sidebar-foreground hover:bg-sidebar-hover"
         >
           <Cloud className="size-3.5 shrink-0 text-sidebar-muted" />
-          <span className="truncate">{branch.name}</span>
+          <span className="truncate">{label ?? branch.name}</span>
         </button>
       </ContextMenuTrigger>
       {onCheckout && (
