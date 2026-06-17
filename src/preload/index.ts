@@ -13,7 +13,7 @@ const themeApi = {
     return () => ipcRenderer.removeListener(CHANNELS.THEME_CHANGED, listener)
   },
 }
-import type { LogOptions, BlameLine, ReflogEntry, Remote, ConflictFile, StashEntry, Submodule, CleanEntry, RebaseCommit, RepoInfo } from '../main/git/types.js'
+import type { LogOptions, BlameLine, ReflogEntry, Remote, ConflictFile, StashEntry, Submodule, CleanEntry, RebaseCommit, RepoInfo, BisectStatus, LfsStatus } from '../main/git/types.js'
 
 const appApi = {
   platform: process.platform as NodeJS.Platform,
@@ -287,6 +287,28 @@ const gitApi = {
     ipcRenderer.invoke(CHANNELS.SSH_LIST),
   generateSshKey: (args: { name: string; type: 'ed25519' | 'rsa'; comment: string; passphrase: string }): Promise<{ name: string; path: string; publicKey: string }> =>
     ipcRenderer.invoke(CHANNELS.SSH_GENERATE, args),
+
+  // Bisect
+  getBisectStatus: (repoPath: string): Promise<BisectStatus> =>
+    ipcRenderer.invoke(CHANNELS.BISECT_STATUS, repoPath),
+  bisectStart: (repoPath: string, bad?: string, good?: string): Promise<BisectStatus> =>
+    ipcRenderer.invoke(CHANNELS.BISECT_START, repoPath, bad, good),
+  bisectMark: (repoPath: string, term: 'good' | 'bad', rev?: string): Promise<BisectStatus> =>
+    ipcRenderer.invoke(CHANNELS.BISECT_MARK, repoPath, term, rev),
+  bisectSkip: (repoPath: string, rev?: string): Promise<BisectStatus> =>
+    ipcRenderer.invoke(CHANNELS.BISECT_SKIP, repoPath, rev),
+  bisectReset: (repoPath: string): Promise<BisectStatus> =>
+    ipcRenderer.invoke(CHANNELS.BISECT_RESET, repoPath),
+
+  // Git LFS
+  lfsStatus: (repoPath: string): Promise<LfsStatus> =>
+    ipcRenderer.invoke(CHANNELS.LFS_STATUS, repoPath),
+  lfsInstall: (repoPath: string): Promise<void> =>
+    ipcRenderer.invoke(CHANNELS.LFS_INSTALL, repoPath),
+  lfsTrack: (repoPath: string, pattern: string): Promise<void> =>
+    ipcRenderer.invoke(CHANNELS.LFS_TRACK, repoPath, pattern),
+  lfsUntrack: (repoPath: string, pattern: string): Promise<void> =>
+    ipcRenderer.invoke(CHANNELS.LFS_UNTRACK, repoPath, pattern),
 }
 
 import type {

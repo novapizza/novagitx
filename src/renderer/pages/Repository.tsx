@@ -40,6 +40,8 @@ import { ArchiveDialog } from '@/components/git/ArchiveDialog'
 import { FsckDialog } from '@/components/git/FsckDialog'
 import { MailmapEditor } from '@/components/git/MailmapEditor'
 import { SparseCheckoutDialog } from '@/components/git/SparseCheckoutDialog'
+import { BisectDialog } from '@/components/git/BisectDialog'
+import { LfsDialog } from '@/components/git/LfsDialog'
 import { SettingsDialog } from '@/components/git/SettingsDialog'
 import { GitHubToolbar } from '@/components/github/GitHubToolbar'
 import { PullRequestsPanel } from '@/components/github/PullRequestsPanel'
@@ -144,6 +146,8 @@ export default function Repository() {
   const [fsckOpen, setFsckOpen] = useState(false)
   const [mailmapOpen, setMailmapOpen] = useState(false)
   const [sparseOpen, setSparseOpen] = useState(false)
+  const [bisectOpen, setBisectOpen] = useState(false)
+  const [lfsOpen, setLfsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTab, setSettingsTab] = useState<'general' | 'github' | undefined>(undefined)
   // GitHub
@@ -495,6 +499,8 @@ export default function Repository() {
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => setSubmodulesOpen(true)}>Submodules…</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setCleanOpen(true)}>Clean working dir…</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setBisectOpen(true)}>Bisect…</DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setLfsOpen(true)}>Git LFS…</DropdownMenuItem>
                     <DropdownMenuSeparator />
                     <DropdownMenuItem onClick={() => setGitignoreFile('gitignore')}>Edit .gitignore</DropdownMenuItem>
                     <DropdownMenuItem onClick={() => setGitignoreFile('gitattributes')}>Edit .gitattributes</DropdownMenuItem>
@@ -754,6 +760,8 @@ export default function Repository() {
       <FsckDialog open={fsckOpen} onOpenChange={setFsckOpen} repoPath={repoPath} />
       <MailmapEditor open={mailmapOpen} onOpenChange={setMailmapOpen} repoPath={repoPath} />
       <SparseCheckoutDialog open={sparseOpen} onOpenChange={setSparseOpen} repoPath={repoPath} />
+      <BisectDialog open={bisectOpen} onOpenChange={setBisectOpen} repoPath={repoPath} />
+      <LfsDialog open={lfsOpen} onOpenChange={setLfsOpen} repoPath={repoPath} />
       <SettingsDialog open={settingsOpen} onOpenChange={setSettingsOpen} repoPath={repoPath} initialTab={settingsTab} />
 
       <GitHubAuthDialog open={ghAuthOpen} onClose={() => setGhAuthOpen(false)} />

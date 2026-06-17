@@ -1,4 +1,4 @@
-import type { GitRevision, GitRef, GitItemStatus, DiffFile, LogOptions, RepoInfo, RefGroups, BlameLine, ReflogEntry, Remote, ConflictFile, StashEntry, Submodule, CleanEntry, RebaseCommit, Worktree, FsckResult, CommitSignature, SparseCheckoutInfo, GitConfigEntry } from '@/types/git'
+import type { GitRevision, GitRef, GitItemStatus, DiffFile, LogOptions, RepoInfo, RefGroups, BlameLine, ReflogEntry, Remote, ConflictFile, StashEntry, Submodule, CleanEntry, RebaseCommit, Worktree, FsckResult, CommitSignature, SparseCheckoutInfo, GitConfigEntry, BisectStatus, LfsStatus } from '@/types/git'
 
 /** Auto-update lifecycle status pushed from the main process. */
 export type UpdateStatus =
@@ -106,6 +106,15 @@ declare global {
       writeCommitTemplate: (path: string | undefined, content: string) => Promise<string>
       listSshKeys: () => Promise<{ name: string; path: string; publicKey: string }[]>
       generateSshKey: (args: { name: string; type: 'ed25519' | 'rsa'; comment: string; passphrase: string }) => Promise<{ name: string; path: string; publicKey: string }>
+      getBisectStatus: (repoPath: string) => Promise<BisectStatus>
+      bisectStart: (repoPath: string, bad?: string, good?: string) => Promise<BisectStatus>
+      bisectMark: (repoPath: string, term: 'good' | 'bad', rev?: string) => Promise<BisectStatus>
+      bisectSkip: (repoPath: string, rev?: string) => Promise<BisectStatus>
+      bisectReset: (repoPath: string) => Promise<BisectStatus>
+      lfsStatus: (repoPath: string) => Promise<LfsStatus>
+      lfsInstall: (repoPath: string) => Promise<void>
+      lfsTrack: (repoPath: string, pattern: string) => Promise<void>
+      lfsUntrack: (repoPath: string, pattern: string) => Promise<void>
     }
     theme: {
       getTheme: () => Promise<{ shouldUseDarkColors: boolean; themeSource: 'system' | 'light' | 'dark' }>
@@ -221,4 +230,13 @@ export const gitApi = {
   writeCommitTemplate: (path: string | undefined, content: string) => window.git.writeCommitTemplate(path, content),
   listSshKeys: () => window.git.listSshKeys(),
   generateSshKey: (args: { name: string; type: 'ed25519' | 'rsa'; comment: string; passphrase: string }) => window.git.generateSshKey(args),
+  getBisectStatus: (repoPath: string): Promise<BisectStatus> => window.git.getBisectStatus(repoPath),
+  bisectStart: (repoPath: string, bad?: string, good?: string): Promise<BisectStatus> => window.git.bisectStart(repoPath, bad, good),
+  bisectMark: (repoPath: string, term: 'good' | 'bad', rev?: string): Promise<BisectStatus> => window.git.bisectMark(repoPath, term, rev),
+  bisectSkip: (repoPath: string, rev?: string): Promise<BisectStatus> => window.git.bisectSkip(repoPath, rev),
+  bisectReset: (repoPath: string): Promise<BisectStatus> => window.git.bisectReset(repoPath),
+  lfsStatus: (repoPath: string): Promise<LfsStatus> => window.git.lfsStatus(repoPath),
+  lfsInstall: (repoPath: string): Promise<void> => window.git.lfsInstall(repoPath),
+  lfsTrack: (repoPath: string, pattern: string): Promise<void> => window.git.lfsTrack(repoPath, pattern),
+  lfsUntrack: (repoPath: string, pattern: string): Promise<void> => window.git.lfsUntrack(repoPath, pattern),
 }

@@ -146,6 +146,19 @@ export const CHANNELS = {
   UPDATE_STATUS:  'app:update:status',  // main → renderer: push status changes
   UPDATE_MANUAL:  'app:update:manual',  // main → renderer: a user-initiated check began
 
+  // Bisect
+  BISECT_START:  'git:bisect:start',
+  BISECT_MARK:   'git:bisect:mark',
+  BISECT_SKIP:   'git:bisect:skip',
+  BISECT_RESET:  'git:bisect:reset',
+  BISECT_STATUS: 'git:bisect:status',
+
+  // Git LFS
+  LFS_STATUS:  'git:lfs:status',
+  LFS_TRACK:   'git:lfs:track',
+  LFS_UNTRACK: 'git:lfs:untrack',
+  LFS_INSTALL: 'git:lfs:install',
+
   // ── GitHub ────────────────────────────────────────────────────────────────
   // Auth / multi-account
   GITHUB_AUTH_START:        'github:auth:start',        // begin device flow → DeviceCodeResponse

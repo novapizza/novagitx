@@ -153,6 +153,27 @@ export interface GitConfigEntry {
   scope: 'local' | 'global' | 'system'
 }
 
+export interface BisectStatus {
+  active: boolean
+  currentRev: string | null
+  currentSubject: string | null
+  log: string
+  badCommit: string | null
+  remainingSteps: number | null
+}
+
+export interface LfsFile {
+  path: string
+  oid: string
+  size: string | null
+}
+
+export interface LfsStatus {
+  installed: boolean      // git-lfs binary is available on this machine
+  patterns: string[]      // glob patterns tracked via .gitattributes (filter=lfs)
+  files: LfsFile[]        // objects currently managed by LFS (git lfs ls-files)
+}
+
 export interface RepoInfo {
   path: string
   name: string

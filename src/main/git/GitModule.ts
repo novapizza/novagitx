@@ -7,7 +7,7 @@ import { buildGraphLanes } from './GraphBuilder.js'
 import { StatusParser } from './StatusParser.js'
 import { DiffParser } from './DiffParser.js'
 import { tmpdir } from 'os'
-import type { GitRevision, GitItemStatus, DiffFile, LogOptions, RepoInfo, RefGroups, BlameLine, ReflogEntry, Remote, ConflictFile, StashEntry, Submodule, CleanEntry, RebaseCommit, Worktree, FsckResult, CommitSignature, SparseCheckoutInfo, GitConfigEntry } from './types.js'
+import type { GitRevision, GitItemStatus, DiffFile, LogOptions, RepoInfo, RefGroups, BlameLine, ReflogEntry, Remote, ConflictFile, StashEntry, Submodule, CleanEntry, RebaseCommit, Worktree, FsckResult, CommitSignature, SparseCheckoutInfo, GitConfigEntry, BisectStatus, LfsStatus, LfsFile } from './types.js'
 
 export class GitModule {
   private readonly executor: GitExecutor
@@ -818,5 +818,118 @@ export class GitModule {
 
   async unsetConfig(key: string, scope: 'local' | 'global' = 'local'): Promise<void> {
     await this.executor.run(['config', `--${scope}`, '--unset', key])
+  }
+
+  // ── Bisect ────────────────────────────────────────────────────────────────
+
+  // Reads the live bisect session state. `lastOutput` lets callers fold in the
+  // stdout/stderr of the action they just ran (e.g. "… is the first bad commit",
+  // "roughly N steps") which is the only place git reports those.
+  private async readBisectStatus(lastOutput = ''): Promise<BisectStatus> {
+    const active = existsSync(join(this.repoPath, '.git', 'BISECT_START'))
+    if (!active) {
+      return { active: false, currentRev: null, currentSubject: null, log: '', badCommit: null, remainingSteps: null }
+    }
+    const head = await this.executor.run(['log', '-1', '--format=%H%x00%s'])
+    const [currentRev = null, currentSubject = null] = head.stdout.trim().split('\0')
+    const logRes = await this.executor.run(['bisect', 'log'])
+    const log = logRes.exitCode === 0 ? logRes.stdout : ''
+    const badMatch =
+      lastOutput.match(/([0-9a-f]{7,40}) is the first bad commit/) ||
+      log.match(/# first bad commit:\s*\[([0-9a-f]{7,40})\]/)
+    const stepsMatch = lastOutput.match(/roughly (\d+) steps?/)
+    return {
+      active: true,
+      currentRev: currentRev || null,
+      currentSubject: currentSubject || null,
+      log,
+      badCommit: badMatch ? badMatch[1] : null,
+      remainingSteps: stepsMatch ? Number(stepsMatch[1]) : null,
+    }
+  }
+
+  async getBisectStatus(): Promise<BisectStatus> {
+    return this.readBisectStatus()
+  }
+
+  async bisectStart(bad?: string, good?: string): Promise<BisectStatus> {
+    const args = ['bisect', 'start']
+    if (bad) args.push(bad)
+    if (good) args.push(good)
+    const result = await this.executor.run(args)
+    if (result.exitCode !== 0) throw new Error(result.stderr.trim() || result.stdout.trim())
+    return this.readBisectStatus(`${result.stdout}\n${result.stderr}`)
+  }
+
+  async bisectMark(term: 'good' | 'bad', rev?: string): Promise<BisectStatus> {
+    const args = ['bisect', term]
+    if (rev) args.push(rev)
+    const result = await this.executor.run(args)
+    if (result.exitCode !== 0) throw new Error(result.stderr.trim() || result.stdout.trim())
+    return this.readBisectStatus(`${result.stdout}\n${result.stderr}`)
+  }
+
+  async bisectSkip(rev?: string): Promise<BisectStatus> {
+    const args = ['bisect', 'skip']
+    if (rev) args.push(rev)
+    const result = await this.executor.run(args)
+    if (result.exitCode !== 0) throw new Error(result.stderr.trim() || result.stdout.trim())
+    return this.readBisectStatus(`${result.stdout}\n${result.stderr}`)
+  }
+
+  async bisectReset(): Promise<BisectStatus> {
+    const result = await this.executor.run(['bisect', 'reset'])
+    if (result.exitCode !== 0) throw new Error(result.stderr.trim() || result.stdout.trim())
+    return this.readBisectStatus()
+  }
+
+  // ── Git LFS ─────────────────────────────────────────────────────────────────
+
+  async lfsStatus(): Promise<LfsStatus> {
+    const ver = await this.executor.run(['lfs', 'version'])
+    const installed = ver.exitCode === 0
+    if (!installed) return { installed: false, patterns: [], files: [] }
+
+    // `git lfs track` lists the patterns currently recorded in .gitattributes:
+    //   Listing tracked patterns
+    //       *.psd (.gitattributes)
+    const trackRes = await this.executor.run(['lfs', 'track'])
+    const patterns = trackRes.stdout
+      .split('\n')
+      .map((l) => l.trim())
+      .filter((l) => l && !/^Listing tracked/i.test(l))
+      .map((l) => l.replace(/\s*\([^)]*\)\s*$/, '').trim())
+      .filter(Boolean)
+
+    // `git lfs ls-files --long --size`:  <oid> <* | -> <path> (size)
+    const lsRes = await this.executor.run(['lfs', 'ls-files', '--long', '--size'])
+    const files: LfsFile[] = lsRes.exitCode !== 0
+      ? []
+      : lsRes.stdout
+          .split('\n')
+          .filter(Boolean)
+          .map((line) => {
+            const m = line.match(/^(\S+)\s+[*-]\s+(.+?)(?:\s+\(([^)]+)\))?$/)
+            if (!m) return null
+            return { oid: m[1], path: m[2].trim(), size: m[3] ?? null } as LfsFile
+          })
+          .filter((f): f is LfsFile => f !== null)
+
+    return { installed, patterns, files }
+  }
+
+  async lfsInstall(): Promise<void> {
+    const result = await this.executor.run(['lfs', 'install', '--local'])
+    if (result.exitCode !== 0) throw new Error(result.stderr.trim() || result.stdout.trim())
+  }
+
+  async lfsTrack(pattern: string): Promise<void> {
+    const result = await this.executor.run(['lfs', 'track', pattern])
+    if (result.exitCode !== 0) throw new Error(result.stderr.trim() || result.stdout.trim())
+  }
+
+  async lfsUntrack(pattern: string): Promise<void> {
+    const result = await this.executor.run(['lfs', 'untrack', pattern])
+    if (result.exitCode !== 0) throw new Error(result.stderr.trim() || result.stdout.trim())
   }
 }
