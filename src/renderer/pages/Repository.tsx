@@ -396,15 +396,6 @@ export default function Repository() {
           onInitRepo={async () => { const info = await gitApi.initRepo(); if (info) setRepo(info) }}
           onCreateBranch={() => setCreateBranch({ open: true, from: repoInfo.currentBranch ?? '' })}
           onRenameBranch={() => { if (repoInfo.currentBranch) setRenameBranchName(repoInfo.currentBranch) }}
-          onMerge={() => setMergeOpen(true)}
-          onOpenPR={async () => {
-            if (!repoPath) return
-            const remotes = await gitApi.getRemotes(repoPath)
-            const origin = remotes.find((r) => r.name === 'origin') ?? remotes[0]
-            if (!origin) return
-            const url = buildPullRequestUrl(origin.fetchUrl || origin.pushUrl, repoInfo.currentBranch)
-            if (url) window.appOS.openExternal(url)
-          }}
           onOpenSettings={() => { setSettingsTab(undefined); setSettingsOpen(true) }}
           githubSlot={
             <GitHubToolbar
@@ -446,18 +437,18 @@ export default function Repository() {
             <div className="flex-1 min-w-0 flex flex-col overflow-hidden">
             <div className="h-9 border-b border-border flex items-center gap-3 px-3 bg-titlebar/60">
               {repoInfo.currentBranch && (
-                <div className="flex items-center gap-1.5 text-[12px] font-semibold">
+                <div className="flex items-center gap-1.5 text-[13px] font-semibold">
                   <GitBranch className="size-3.5 text-primary" />
                   {repoInfo.currentBranch}
                 </div>
               )}
               {repoInfo.isDetachedHead && (
-                <span className="text-[11px] text-destructive font-mono">detached HEAD</span>
+                <span className="text-[12px] text-destructive font-mono">detached HEAD</span>
               )}
               {hasChanges && (
                 <button
                   onClick={() => setShowStaging(true)}
-                  className={`flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-md transition-colors ${
+                  className={`flex items-center gap-1 text-[12px] px-2 py-0.5 rounded-md transition-colors ${
                     showStaging ? 'bg-primary/10 text-primary' : 'text-muted-foreground hover:bg-muted'
                   }`}
                 >
@@ -465,7 +456,7 @@ export default function Repository() {
                   {status.length} change{status.length !== 1 ? 's' : ''}
                 </button>
               )}
-              <div className="ml-auto flex items-center gap-1 text-[11px] text-muted-foreground">
+              <div className="ml-auto flex items-center gap-1 text-[12px] text-muted-foreground">
                 <button
                   onClick={() => { setShowStaging(false); setLogFilter((f) => ({ ...f, onlyCurrentBranch: false })) }}
                   className={`px-2 py-0.5 rounded-md transition-colors ${!showStaging && !logFilter.onlyCurrentBranch ? 'bg-muted' : 'hover:bg-muted'}`}

@@ -1,6 +1,6 @@
 import type {
   GhAccount, AccountsState, DeviceCodeResponse, AuthStatus, GhRepo, GhPullRequest,
-  GhReview, GhIssue, GhComment, GhWorkflowRun, GhCommitStatus, ListOptions,
+  GhReview, GhIssue, GhComment, GhWorkflowRun, GhWorkflowJob, GhCommitStatus, ListOptions,
   CreatePullRequestInput, CreateIssueInput, MergeMethod, GhLabel,
 } from '@/types/github'
 
@@ -41,6 +41,7 @@ interface GitHubBridge {
 
   // Actions / CI
   listWorkflowRuns: (owner: string, repo: string) => Promise<GhWorkflowRun[]>
+  listRunJobs: (owner: string, repo: string, runId: number) => Promise<GhWorkflowJob[]>
   getCommitStatus: (owner: string, repo: string, sha: string) => Promise<GhCommitStatus>
   rerunWorkflow: (owner: string, repo: string, runId: number) => Promise<void>
 }
@@ -95,6 +96,8 @@ export const githubApi = {
   listLabels: (owner: string, repo: string) => window.github.listLabels(owner, repo),
 
   listWorkflowRuns: (owner: string, repo: string) => window.github.listWorkflowRuns(owner, repo),
+  listRunJobs: (owner: string, repo: string, runId: number) =>
+    window.github.listRunJobs(owner, repo, runId),
   getCommitStatus: (owner: string, repo: string, sha: string) =>
     window.github.getCommitStatus(owner, repo, sha),
   rerunWorkflow: (owner: string, repo: string, runId: number) =>

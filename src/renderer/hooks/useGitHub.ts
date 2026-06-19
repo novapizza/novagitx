@@ -193,6 +193,16 @@ export function useWorkflowRuns(owner: string | null, repo: string | null) {
   })
 }
 
+export function useRunJobs(owner: string | null, repo: string | null, runId: number | null) {
+  const accountId = useActiveAccountId()
+  return useQuery({
+    queryKey: ['gh', accountId, 'run-jobs', owner, repo, runId],
+    queryFn: () => githubApi.listRunJobs(owner!, repo!, runId!),
+    enabled: accountId !== null && !!owner && !!repo && runId !== null,
+    staleTime: 15_000,
+  })
+}
+
 export function useRerunWorkflow(owner: string | null, repo: string | null) {
   const qc = useQueryClient()
   const accountId = useActiveAccountId()

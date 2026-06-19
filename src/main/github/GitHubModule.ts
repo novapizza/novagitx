@@ -3,7 +3,7 @@ import { GitHubClient } from './GitHubClient.js'
 import { GitHubAuth } from './GitHubAuth.js'
 import type {
   GhAccount, AccountsState, DeviceCodeResponse, AuthStatus,
-  GhRepo, GhPullRequest, GhReview, GhIssue, GhComment, GhWorkflowRun, GhCommitStatus,
+  GhRepo, GhPullRequest, GhReview, GhIssue, GhComment, GhWorkflowRun, GhWorkflowJob, GhCommitStatus,
   ListOptions, CreatePullRequestInput, CreateIssueInput, MergeMethod, GhUserRef, GhLabel,
 } from './types.js'
 
@@ -293,6 +293,22 @@ export class GitHubModule {
       total: res.total_count,
       htmlUrl: res.statuses[0]?.target_url ?? null,
     }
+  }
+
+  async listRunJobs(owner: string, repo: string, runId: number): Promise<GhWorkflowJob[]> {
+    this.requireAuth()
+    const res = await this.client.request<{ jobs: {
+      id: number; name: string; status: GhWorkflowRun['status']; conclusion: GhWorkflowRun['conclusion']
+      started_at: string | null; completed_at: string | null; html_url: string | null
+      steps?: { name: string; status: GhWorkflowRun['status']; conclusion: GhWorkflowRun['conclusion']; number: number }[]
+    }[] }>(`/repos/${enc(owner)}/${enc(repo)}/actions/runs/${runId}/jobs?per_page=100`)
+    return res.jobs.map((j) => ({
+      id: j.id, name: j.name, status: j.status, conclusion: j.conclusion,
+      startedAt: j.started_at, completedAt: j.completed_at, htmlUrl: j.html_url,
+      steps: (j.steps ?? []).map((s) => ({
+        name: s.name, status: s.status, conclusion: s.conclusion, number: s.number,
+      })),
+    }))
   }
 
   async rerunWorkflow(owner: string, repo: string, runId: number): Promise<void> {

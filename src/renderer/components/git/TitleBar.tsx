@@ -1,5 +1,5 @@
 import type { MouseEvent, ReactNode } from 'react'
-import { Search, GitBranch, GitMerge, GitPullRequest, ArrowDownToLine, ArrowUpFromLine, RotateCw, Plus, Settings2, Sun, Moon, Monitor } from 'lucide-react'
+import { Search, GitBranch, ArrowDownToLine, ArrowUpFromLine, RotateCw, Plus, Settings2, Sun, Moon, Monitor } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -24,8 +24,6 @@ interface TitleBarProps {
   onInitRepo?: () => void
   onCreateBranch?: () => void
   onRenameBranch?: () => void
-  onMerge?: () => void
-  onOpenPR?: () => void
   onOpenSettings?: () => void
   /** GitHub controls (account switcher + panel toggles), composed by the page. */
   githubSlot?: ReactNode
@@ -48,8 +46,6 @@ export function TitleBar({
   onInitRepo,
   onCreateBranch,
   onRenameBranch,
-  onMerge,
-  onOpenPR,
   onOpenSettings,
   githubSlot,
   isFetching,
@@ -73,24 +69,24 @@ export function TitleBar({
       onDoubleClick={handleTitleBarDoubleClick}
       className={`titlebar-vibrancy flex h-11 items-center gap-3 border-b border-titlebar-border ${chromePad} select-none`}
     >
-      <div className="flex items-center gap-1.5 text-[13px] font-semibold text-foreground/80">
+      <div className="flex items-center gap-1.5 text-[14px] font-semibold text-foreground/80">
         <GitBranch className="size-3.5 text-primary" />
         {repoName}
       </div>
-      <span className="text-muted-foreground/60 text-xs">—</span>
+      <span className="text-muted-foreground/60 text-[13px]">—</span>
       <WithTooltip label={repoPath} contentClassName="max-w-[480px] break-all">
-        <span className="no-drag text-[12px] text-muted-foreground truncate max-w-[200px] cursor-default">
+        <span className="no-drag text-[13px] text-muted-foreground truncate max-w-[200px] cursor-default">
           {displayPath}
         </span>
       </WithTooltip>
 
       <button
         onClick={onOpenPalette}
-        className="ml-auto mr-auto hidden md:flex items-center gap-2 h-7 w-[360px] rounded-md bg-background/60 hover:bg-background border border-border/70 px-2.5 text-[12px] text-muted-foreground transition-colors"
+        className="ml-auto mr-auto hidden md:flex items-center gap-2 h-8 w-[520px] rounded-md bg-background/60 hover:bg-background border border-border/70 px-3 text-[13px] text-muted-foreground transition-colors"
       >
-        <Search className="size-3.5" />
+        <Search className="size-4" />
         <span className="truncate">Search commits, branches, files…</span>
-        <span className="ml-auto flex items-center gap-1 text-[10.5px] text-muted-foreground/80">
+        <span className="ml-auto flex items-center gap-1 text-[11.5px] text-muted-foreground/80">
           <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono">⌘</kbd>
           <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono">K</kbd>
         </span>
@@ -104,7 +100,7 @@ export function TitleBar({
         <WithTooltip label="Branch actions">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="relative flex items-center gap-1.5 h-7 px-2 rounded-md text-[12px] text-foreground/80 hover:bg-background/70 active:bg-background transition-colors">
+              <button className="relative flex items-center gap-1.5 h-7 px-2 rounded-md text-[13px] text-foreground/80 hover:bg-background/70 active:bg-background transition-colors">
                 <GitBranch className="size-3.5" />
                 <span className="hidden lg:inline">Branch</span>
               </button>
@@ -118,15 +114,13 @@ export function TitleBar({
             </DropdownMenuContent>
           </DropdownMenu>
         </WithTooltip>
-        <ToolbarButton icon={GitMerge} label="Merge" tooltip="Merge a branch into current" onClick={onMerge} />
-        <ToolbarButton icon={GitPullRequest} label="PR" tooltip="Open pull request on web" onClick={onOpenPR} />
         <Divider />
         {githubSlot}
         {githubSlot && <Divider />}
         <WithTooltip label="Open / clone / new repository">
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="relative flex items-center gap-1.5 h-7 px-2 rounded-md text-[12px] text-foreground/80 hover:bg-background/70 active:bg-background transition-colors">
+              <button className="relative flex items-center gap-1.5 h-7 px-2 rounded-md text-[13px] text-foreground/80 hover:bg-background/70 active:bg-background transition-colors">
                 <Plus className="size-3.5" />
               </button>
             </DropdownMenuTrigger>
@@ -157,7 +151,7 @@ function ThemeToggle() {
     <WithTooltip label={`Theme: ${THEME_LABELS[mode]} — click for ${THEME_LABELS[next]}`}>
       <button
         onClick={() => setMode(next)}
-        className="relative flex items-center gap-1.5 h-7 px-2 rounded-md text-[12px] text-foreground/80 hover:bg-background/70 active:bg-background transition-colors"
+        className="relative flex items-center gap-1.5 h-7 px-2 rounded-md text-[13px] text-foreground/80 hover:bg-background/70 active:bg-background transition-colors"
       >
         <Icon className="size-3.5" />
       </button>
@@ -184,7 +178,7 @@ function ToolbarButton({
     <button
       onClick={onClick}
       disabled={loading}
-      className="relative flex items-center gap-1.5 h-7 px-2 rounded-md text-[12px] text-foreground/80 hover:bg-background/70 active:bg-background transition-colors disabled:opacity-50"
+      className="relative flex items-center gap-1.5 h-7 px-2 rounded-md text-[13px] text-foreground/80 hover:bg-background/70 active:bg-background transition-colors disabled:opacity-50"
     >
       <Icon className={`size-3.5 ${loading ? 'animate-spin' : ''}`} />
       {label && <span className="hidden lg:inline">{label}</span>}

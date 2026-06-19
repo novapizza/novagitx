@@ -50,18 +50,18 @@ export function LogFilter({ value, onChange }: LogFilterProps) {
           value={grep}
           onChange={(e) => setGrep(e.target.value)}
           placeholder="Filter message…"
-          className="h-6 flex-1 min-w-0 bg-transparent text-[11.5px] text-foreground placeholder:text-muted-foreground/60 outline-none"
+          className="h-6 flex-1 min-w-0 bg-transparent text-[12.5px] text-foreground placeholder:text-muted-foreground/60 outline-none"
         />
         <input
           value={author}
           onChange={(e) => setAuthor(e.target.value)}
           placeholder="Author…"
-          className="h-6 w-[110px] bg-transparent text-[11.5px] text-foreground placeholder:text-muted-foreground/60 outline-none border-l border-border pl-2"
+          className="h-6 w-[110px] bg-transparent text-[12.5px] text-foreground placeholder:text-muted-foreground/60 outline-none border-l border-border pl-2"
         />
         <button
           onClick={toggleCurrentBranch}
           title="Current branch only"
-          className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] transition-colors ${
+          className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[12px] transition-colors ${
             value.onlyCurrentBranch ? 'bg-primary/15 text-primary' : 'text-muted-foreground hover:bg-muted'
           }`}
         >
@@ -70,7 +70,7 @@ export function LogFilter({ value, onChange }: LogFilterProps) {
         </button>
         <button
           onClick={() => setShowAdvanced((v) => !v)}
-          className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[11px] transition-colors ${
+          className={`flex items-center gap-1 px-1.5 py-0.5 rounded text-[12px] transition-colors ${
             showAdvanced || pickaxe || pickaxeRegex || pathFilter
               ? 'bg-primary/15 text-primary'
               : 'text-muted-foreground hover:bg-muted'
@@ -92,19 +92,19 @@ export function LogFilter({ value, onChange }: LogFilterProps) {
             value={pickaxe}
             onChange={(e) => setPickaxe(e.target.value)}
             placeholder="Pickaxe -S: text added/removed in diff…"
-            className="h-6 flex-1 min-w-0 bg-background/40 rounded px-2 text-[11.5px] text-foreground placeholder:text-muted-foreground/60 outline-none border border-border/60"
+            className="h-6 flex-1 min-w-0 bg-background/40 rounded px-2 text-[12.5px] text-foreground placeholder:text-muted-foreground/60 outline-none border border-border/60"
           />
           <input
             value={pickaxeRegex}
             onChange={(e) => setPickaxeRegex(e.target.value)}
             placeholder="Pickaxe -G regex…"
-            className="h-6 w-[160px] bg-background/40 rounded px-2 text-[11.5px] text-foreground placeholder:text-muted-foreground/60 outline-none border border-border/60"
+            className="h-6 w-[160px] bg-background/40 rounded px-2 text-[12.5px] text-foreground placeholder:text-muted-foreground/60 outline-none border border-border/60"
           />
           <input
             value={pathFilter}
             onChange={(e) => setPathFilter(e.target.value)}
             placeholder="Path…"
-            className="h-6 w-[160px] bg-background/40 rounded px-2 text-[11.5px] text-foreground placeholder:text-muted-foreground/60 outline-none border border-border/60"
+            className="h-6 w-[160px] bg-background/40 rounded px-2 text-[12.5px] text-foreground placeholder:text-muted-foreground/60 outline-none border border-border/60"
           />
         </div>
       )}

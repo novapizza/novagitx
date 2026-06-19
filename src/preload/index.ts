@@ -313,7 +313,7 @@ const gitApi = {
 
 import type {
   GhAccount, AccountsState, DeviceCodeResponse, AuthStatus, GhRepo, GhPullRequest,
-  GhReview, GhIssue, GhComment, GhWorkflowRun, GhCommitStatus, ListOptions,
+  GhReview, GhIssue, GhComment, GhWorkflowRun, GhWorkflowJob, GhCommitStatus, ListOptions,
   CreatePullRequestInput, CreateIssueInput, MergeMethod, GhLabel,
 } from '../main/github/types.js'
 
@@ -375,6 +375,8 @@ const githubApi = {
   // Actions / CI
   listWorkflowRuns: (owner: string, repo: string): Promise<GhWorkflowRun[]> =>
     ipcRenderer.invoke(CHANNELS.GITHUB_RUNS_LIST, owner, repo),
+  listRunJobs: (owner: string, repo: string, runId: number): Promise<GhWorkflowJob[]> =>
+    ipcRenderer.invoke(CHANNELS.GITHUB_RUN_JOBS, owner, repo, runId),
   getCommitStatus: (owner: string, repo: string, sha: string): Promise<GhCommitStatus> =>
     ipcRenderer.invoke(CHANNELS.GITHUB_COMMIT_STATUS, owner, repo, sha),
   rerunWorkflow: (owner: string, repo: string, runId: number): Promise<void> =>

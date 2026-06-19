@@ -131,6 +131,24 @@ export interface GhWorkflowRun {
   runNumber: number
 }
 
+export interface GhWorkflowStep {
+  name: string
+  status: GhRunStatus
+  conclusion: GhRunConclusion
+  number: number
+}
+
+export interface GhWorkflowJob {
+  id: number
+  name: string
+  status: GhRunStatus
+  conclusion: GhRunConclusion
+  startedAt: string | null
+  completedAt: string | null
+  htmlUrl: string | null
+  steps: GhWorkflowStep[]
+}
+
 /** Combined CI state for a single commit, used for the inline graph badge. */
 export interface GhCommitStatus {
   sha: string

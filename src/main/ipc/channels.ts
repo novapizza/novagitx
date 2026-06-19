@@ -196,6 +196,7 @@ export const CHANNELS = {
 
   // Actions / CI
   GITHUB_RUNS_LIST:     'github:runs:list',
+  GITHUB_RUN_JOBS:      'github:run:jobs',
   GITHUB_COMMIT_STATUS: 'github:commit:status',
   GITHUB_RUN_RERUN:     'github:run:rerun',
 } as const
