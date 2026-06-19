@@ -128,6 +128,24 @@ export interface GhWorkflowRun {
   runNumber: number
 }
 
+export interface GhWorkflowStep {
+  name: string
+  status: GhRunStatus
+  conclusion: GhRunConclusion
+  number: number
+}
+
+export interface GhWorkflowJob {
+  id: number
+  name: string
+  status: GhRunStatus
+  conclusion: GhRunConclusion
+  startedAt: string | null
+  completedAt: string | null
+  htmlUrl: string | null
+  steps: GhWorkflowStep[]
+}
+
 export interface GhCommitStatus {
   sha: string
   state: 'success' | 'failure' | 'pending' | 'error' | 'none'

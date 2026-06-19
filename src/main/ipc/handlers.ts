@@ -641,6 +641,8 @@ export function registerHandlers(): void {
   // Actions / CI
   ipcMain.handle(CHANNELS.GITHUB_RUNS_LIST, async (_, owner: string, repo: string) =>
     getGitHub().listWorkflowRuns(owner, repo))
+  ipcMain.handle(CHANNELS.GITHUB_RUN_JOBS, async (_, owner: string, repo: string, runId: number) =>
+    getGitHub().listRunJobs(owner, repo, runId))
   ipcMain.handle(CHANNELS.GITHUB_COMMIT_STATUS, async (_, owner: string, repo: string, sha: string) =>
     getGitHub().getCommitStatus(owner, repo, sha))
   ipcMain.handle(CHANNELS.GITHUB_RUN_RERUN, async (_, owner: string, repo: string, runId: number) =>
