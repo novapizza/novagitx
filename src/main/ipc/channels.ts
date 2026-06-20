@@ -55,8 +55,13 @@ export const CHANNELS = {
   BRANCH_REBASE:       'git:branch:rebase',
   BRANCH_REBASE_ABORT: 'git:branch:rebase-abort',
 
-  CONFLICT_LIST:    'git:conflict:list',
-  CONFLICT_RESOLVE: 'git:conflict:resolve',
+  CONFLICT_LIST:           'git:conflict:list',
+  CONFLICT_RESOLVE:        'git:conflict:resolve',
+  CONFLICT_READ_FILE:      'git:conflict:read-file',
+  CONFLICT_RESOLVE_MANUAL: 'git:conflict:resolve-manual',
+
+  UNDO_LAST_GET: 'git:undo:last',
+  UNDO_LAST:     'git:undo:perform',
 
   STAGE_HUNK:   'git:stage:hunk',
   UNSTAGE_HUNK: 'git:unstage:hunk',

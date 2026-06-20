@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { FileText, GitCommit, FileDiff, Copy, History, GitBranch } from 'lucide-react'
 import type { GitRevision, DiffFile, DiffLine } from '@/types/git'
 import { hashColor, initials } from '@/types/git'
@@ -7,6 +7,7 @@ import { ShieldCheck, ShieldAlert, ShieldOff } from 'lucide-react'
 import { FileHistoryPanel } from './FileHistoryPanel'
 import { BlameView } from './BlameView'
 import { SplitDiffBody, DiffModeToggle } from './SplitDiff'
+import { computeIntraLineSegments, SegmentedText } from '@/lib/wordDiff'
 import { useUiStore } from '@/store/uiStore'
 import {
   ContextMenu,
@@ -167,6 +168,7 @@ function DiffView({
   const { data: diffFiles, isLoading } = useFileDiff(repoPath, commitHash, filePath)
   const lines: DiffLine[] = diffFiles?.[0]?.lines ?? []
   const viewMode = useUiStore((s) => s.diffViewMode)
+  const segMap = useMemo(() => computeIntraLineSegments(lines), [lines])
 
   if (!filePath) {
     return (
@@ -226,7 +228,13 @@ function DiffView({
                       {l.newLineNum ?? ''}
                     </td>
                     <td className={`select-none w-5 text-center ${fg}`}>{sign}</td>
-                    <td className={`pl-2 pr-4 whitespace-pre ${fg}`}>{l.text}</td>
+                    <td className={`pl-2 pr-4 whitespace-pre ${fg}`}>
+                      {segMap.has(l) ? (
+                        <SegmentedText segments={segMap.get(l)!} kind={l.type === 'add' ? 'add' : 'del'} />
+                      ) : (
+                        l.text
+                      )}
+                    </td>
                   </tr>
                 )
               })}

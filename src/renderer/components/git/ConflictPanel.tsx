@@ -1,12 +1,13 @@
-import { AlertTriangle, Check, ChevronRight, ChevronLeft } from 'lucide-react'
+import { AlertTriangle, ChevronRight, ChevronLeft, GitMerge } from 'lucide-react'
 import { useConflicts, useConflictMutations } from '@/hooks/useRepo'
 import type { ConflictFile } from '@/types/git'
 
 interface ConflictPanelProps {
   repoPath: string | null
+  onOpenEditor?: (filePath: string) => void
 }
 
-export function ConflictPanel({ repoPath }: ConflictPanelProps) {
+export function ConflictPanel({ repoPath, onOpenEditor }: ConflictPanelProps) {
   const { data: conflicts = [] } = useConflicts(repoPath)
   const resolve = useConflictMutations(repoPath)
 
@@ -27,6 +28,7 @@ export function ConflictPanel({ repoPath }: ConflictPanelProps) {
             conflict={f}
             isPending={resolve.isPending}
             onResolve={(strategy) => resolve.mutate({ filePath: f.path, strategy })}
+            onOpenEditor={onOpenEditor ? () => onOpenEditor(f.path) : undefined}
           />
         ))}
       </div>
@@ -38,15 +40,28 @@ function ConflictRow({
   conflict,
   isPending,
   onResolve,
+  onOpenEditor,
 }: {
   conflict: ConflictFile
   isPending: boolean
   onResolve: (strategy: 'ours' | 'theirs') => void
+  onOpenEditor?: () => void
 }) {
   return (
     <div className="flex items-center gap-2 px-3 py-1.5">
       <span className="font-mono text-[11.5px] text-foreground/85 truncate flex-1">{conflict.path}</span>
       <div className="flex items-center gap-1 shrink-0">
+        {onOpenEditor && (
+          <button
+            onClick={onOpenEditor}
+            disabled={isPending}
+            title="Resolve in merge editor"
+            className="flex items-center gap-1 text-[10.5px] px-1.5 py-0.5 rounded bg-primary/15 text-primary hover:bg-primary/25 transition-colors disabled:opacity-40"
+          >
+            <GitMerge className="size-3" />
+            Resolve…
+          </button>
+        )}
         <button
           onClick={() => onResolve('ours')}
           disabled={isPending}

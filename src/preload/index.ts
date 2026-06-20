@@ -13,7 +13,7 @@ const themeApi = {
     return () => ipcRenderer.removeListener(CHANNELS.THEME_CHANGED, listener)
   },
 }
-import type { LogOptions, BlameLine, ReflogEntry, Remote, ConflictFile, StashEntry, Submodule, CleanEntry, RebaseCommit, RepoInfo, BisectStatus, LfsStatus } from '../main/git/types.js'
+import type { LogOptions, BlameLine, ReflogEntry, Remote, ConflictFile, UndoableAction, StashEntry, Submodule, CleanEntry, RebaseCommit, RepoInfo, BisectStatus, LfsStatus } from '../main/git/types.js'
 
 const appApi = {
   platform: process.platform as NodeJS.Platform,
@@ -159,6 +159,16 @@ const gitApi = {
     ipcRenderer.invoke(CHANNELS.CONFLICT_LIST, repoPath),
   resolveConflict: (repoPath: string, filePath: string, strategy: 'ours' | 'theirs'): Promise<void> =>
     ipcRenderer.invoke(CHANNELS.CONFLICT_RESOLVE, repoPath, filePath, strategy),
+  readConflictFile: (repoPath: string, filePath: string): Promise<string> =>
+    ipcRenderer.invoke(CHANNELS.CONFLICT_READ_FILE, repoPath, filePath),
+  resolveConflictManual: (repoPath: string, filePath: string, content: string): Promise<void> =>
+    ipcRenderer.invoke(CHANNELS.CONFLICT_RESOLVE_MANUAL, repoPath, filePath, content),
+
+  // Undo last action
+  getLastUndoable: (repoPath: string): Promise<UndoableAction | null> =>
+    ipcRenderer.invoke(CHANNELS.UNDO_LAST_GET, repoPath),
+  undoLast: (repoPath: string): Promise<void> =>
+    ipcRenderer.invoke(CHANNELS.UNDO_LAST, repoPath),
 
   // Partial staging
   stageHunk: (repoPath: string, patch: string): Promise<void> =>

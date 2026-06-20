@@ -1,6 +1,8 @@
 import { Columns2, AlignJustify } from 'lucide-react'
+import { useMemo } from 'react'
 import type { DiffLine } from '@/types/git'
 import { useUiStore, type DiffViewMode } from '@/store/uiStore'
+import { computeIntraLineSegments, SegmentedText } from '@/lib/wordDiff'
 
 /** A row in the side-by-side view: either a full-width hunk header, or a left/right pair. */
 type SplitRow =
@@ -43,6 +45,7 @@ export function toSplitRows(lines: DiffLine[]): SplitRow[] {
 /** Side-by-side (old | new) diff body. Mirrors the unified view's typography. */
 export function SplitDiffBody({ lines }: { lines: DiffLine[] }) {
   const rows = toSplitRows(lines)
+  const segMap = useMemo(() => computeIntraLineSegments(lines), [lines])
   return (
     <table className="w-full border-collapse">
       <tbody>
@@ -67,13 +70,21 @@ export function SplitDiffBody({ lines }: { lines: DiffLine[] }) {
                 {left?.oldLineNum ?? ''}
               </td>
               <td className={`pl-2 pr-4 whitespace-pre align-top ${leftBg} ${leftFg}`}>
-                {left?.text ?? ''}
+                {left && segMap.has(left) ? (
+                  <SegmentedText segments={segMap.get(left)!} kind="del" />
+                ) : (
+                  left?.text ?? ''
+                )}
               </td>
               <td className="select-none w-10 text-right pr-2 text-muted-foreground/60 border-l border-r border-border/40 align-top">
                 {right?.newLineNum ?? ''}
               </td>
               <td className={`pl-2 pr-4 whitespace-pre align-top ${rightBg} ${rightFg}`}>
-                {right?.text ?? ''}
+                {right && segMap.has(right) ? (
+                  <SegmentedText segments={segMap.get(right)!} kind="add" />
+                ) : (
+                  right?.text ?? ''
+                )}
               </td>
             </tr>
           )
