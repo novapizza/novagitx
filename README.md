@@ -12,7 +12,10 @@ A native-feeling macOS Git GUI built with Electron, React, and TypeScript. Inspi
 - **Branch management** — create, checkout, rename, delete, set upstream
 - **Remote operations** — fetch, pull, push with ahead/behind indicators
 - **Merge & Rebase** — merge strategies, standard and interactive rebase
+- **3-way merge editor** — resolve conflicts with base/ours/theirs side by side
 - **Conflict resolution** — ours/theirs strategy per file
+- **Word-level diff** — intra-line highlighting of added/removed words
+- **Undo last action** — revert the most recent git operation
 - **Stash manager** — save with flags, pop/apply/drop, diff preview
 - **Tags** — create, delete, push to remote
 - **Reflog** — browse and checkout any reflog entry
