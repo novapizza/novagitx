@@ -78,6 +78,9 @@
     --diff-del: 0 75% 95%;
     --diff-del-fg: 0 70% 35%;
     --diff-del-bar: 0 70% 55%;
+    /* Stronger backgrounds for changed words inside a changed line. */
+    --diff-add-word: 145 60% 78%;
+    --diff-del-word: 0 72% 85%;
 
     --shadow-window: 0 30px 80px -20px hsl(220 40% 5% / 0.55), 0 8px 20px -8px hsl(220 40% 5% / 0.35);
     --shadow-popover: 0 12px 32px -8px hsl(220 40% 5% / 0.25);
@@ -130,6 +133,8 @@
     --diff-add-fg: 145 60% 75%;
     --diff-del: 0 40% 22%;
     --diff-del-fg: 0 70% 80%;
+    --diff-add-word: 145 50% 32%;
+    --diff-del-word: 0 55% 38%;
 
     --shadow-window: 0 30px 80px -20px hsl(0 0% 0% / 0.7), 0 8px 20px -8px hsl(0 0% 0% / 0.5);
   }

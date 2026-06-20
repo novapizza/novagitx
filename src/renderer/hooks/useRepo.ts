@@ -12,7 +12,7 @@ function liveInterval(focused: boolean, ms: number): number | false {
   return focused ? ms : false
 }
 
-type QueryKey = 'log' | 'refs' | 'status' | 'stashList' | 'remotes' | 'submodules' | 'conflicts' | 'diff:working' | 'diff:staged' | 'gitignore' | 'gitattributes'
+type QueryKey = 'log' | 'refs' | 'status' | 'stashList' | 'remotes' | 'submodules' | 'conflicts' | 'undoable' | 'diff:working' | 'diff:staged' | 'gitignore' | 'gitattributes'
 
 function useInvalidate(repoPath: string | null, keys: QueryKey[]) {
   const qc = useQueryClient()
@@ -358,6 +358,47 @@ export function useConflictMutations(repoPath: string | null) {
   return useMutation({
     mutationFn: ({ filePath, strategy }: { filePath: string; strategy: 'ours' | 'theirs' }) =>
       gitApi.resolveConflict(repoPath!, filePath, strategy),
+    onSuccess: invalidate,
+  })
+}
+
+/** Raw conflicted-file content (with markers) for the merge editor. */
+export function useConflictFile(repoPath: string | null, filePath: string | null) {
+  return useQuery({
+    queryKey: ['conflictFile', repoPath, filePath],
+    queryFn: () => gitApi.readConflictFile(repoPath!, filePath!),
+    enabled: !!repoPath && !!filePath,
+    staleTime: 0,
+  })
+}
+
+export function useResolveConflictManual(repoPath: string | null) {
+  const invalidate = useInvalidate(repoPath, ['conflicts', 'status', 'diff:working', 'diff:staged'])
+  return useMutation({
+    mutationFn: ({ filePath, content }: { filePath: string; content: string }) =>
+      gitApi.resolveConflictManual(repoPath!, filePath, content),
+    onSuccess: invalidate,
+  })
+}
+
+// ── Undo last action ───────────────────────────────────────────────────────
+
+export function useLastUndoable(repoPath: string | null) {
+  const focused = useWindowFocus()
+  return useQuery({
+    queryKey: ['undoable', repoPath],
+    queryFn: () => gitApi.getLastUndoable(repoPath!),
+    enabled: !!repoPath,
+    staleTime: 2_000,
+    refetchInterval: liveInterval(focused, 4_000),
+    refetchOnWindowFocus: true,
+  })
+}
+
+export function useUndoMutation(repoPath: string | null) {
+  const invalidate = useInvalidate(repoPath, ['log', 'refs', 'status', 'conflicts', 'undoable', 'diff:working', 'diff:staged'])
+  return useMutation({
+    mutationFn: () => gitApi.undoLast(repoPath!),
     onSuccess: invalidate,
   })
 }

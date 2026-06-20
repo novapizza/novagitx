@@ -83,6 +83,15 @@ export interface ConflictFile {
   path: string
 }
 
+/** The last HEAD-moving operation, surfaced for "Undo last action". */
+export interface UndoableAction {
+  action: string
+  detail: string
+  target: string
+  method: 'soft-reset' | 'hard-reset' | 'checkout'
+  unsafe: boolean
+}
+
 export interface StashEntry {
   index: number
   ref: string

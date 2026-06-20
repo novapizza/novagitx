@@ -81,6 +81,20 @@ export interface ConflictFile {
   path: string
 }
 
+/** The last HEAD-moving operation, surfaced for "Undo last action". */
+export interface UndoableAction {
+  /** Short, human label parsed from the reflog subject (e.g. "commit", "merge"). */
+  action: string
+  /** Full reflog subject (e.g. "merge feature: Fast-forward"). */
+  detail: string
+  /** Short hash of the state undo would return to (HEAD@{1}). */
+  target: string
+  /** How the undo is performed. */
+  method: 'soft-reset' | 'hard-reset' | 'checkout'
+  /** True when the undo would discard uncommitted changes (dirty working tree). */
+  unsafe: boolean
+}
+
 export interface StashEntry {
   index: number
   ref: string

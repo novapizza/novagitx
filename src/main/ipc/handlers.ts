@@ -256,6 +256,24 @@ export function registerHandlers(): void {
     await getModule(repoPath).resolveConflict(filePath, strategy)
   })
 
+  ipcMain.handle(CHANNELS.CONFLICT_READ_FILE, async (_, repoPath: string, filePath: string) => {
+    return getModule(repoPath).readConflictFile(filePath)
+  })
+
+  ipcMain.handle(CHANNELS.CONFLICT_RESOLVE_MANUAL, async (_, repoPath: string, filePath: string, content: string) => {
+    await getModule(repoPath).resolveConflictManual(filePath, content)
+  })
+
+  // ── Undo last action ───────────────────────────────────────────────────────
+
+  ipcMain.handle(CHANNELS.UNDO_LAST_GET, async (_, repoPath: string) => {
+    return getModule(repoPath).getLastUndoable()
+  })
+
+  ipcMain.handle(CHANNELS.UNDO_LAST, async (_, repoPath: string) => {
+    await getModule(repoPath).undoLast()
+  })
+
   // ── Partial staging ───────────────────────────────────────────────────────
 
   ipcMain.handle(CHANNELS.STAGE_HUNK, async (_, repoPath: string, patch: string) => {

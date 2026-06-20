@@ -1,4 +1,4 @@
-import type { GitRevision, GitRef, GitItemStatus, DiffFile, LogOptions, RepoInfo, RefGroups, BlameLine, ReflogEntry, Remote, ConflictFile, StashEntry, Submodule, CleanEntry, RebaseCommit, Worktree, FsckResult, CommitSignature, SparseCheckoutInfo, GitConfigEntry, BisectStatus, LfsStatus } from '@/types/git'
+import type { GitRevision, GitRef, GitItemStatus, DiffFile, LogOptions, RepoInfo, RefGroups, BlameLine, ReflogEntry, Remote, ConflictFile, UndoableAction, StashEntry, Submodule, CleanEntry, RebaseCommit, Worktree, FsckResult, CommitSignature, SparseCheckoutInfo, GitConfigEntry, BisectStatus, LfsStatus } from '@/types/git'
 
 /** Auto-update lifecycle status pushed from the main process. */
 export type UpdateStatus =
@@ -58,6 +58,10 @@ declare global {
       abortRebase: (repoPath: string) => Promise<void>
       getConflicts: (repoPath: string) => Promise<ConflictFile[]>
       resolveConflict: (repoPath: string, filePath: string, strategy: 'ours' | 'theirs') => Promise<void>
+      readConflictFile: (repoPath: string, filePath: string) => Promise<string>
+      resolveConflictManual: (repoPath: string, filePath: string, content: string) => Promise<void>
+      getLastUndoable: (repoPath: string) => Promise<UndoableAction | null>
+      undoLast: (repoPath: string) => Promise<void>
       stageHunk: (repoPath: string, patch: string) => Promise<void>
       unstageHunk: (repoPath: string, patch: string) => Promise<void>
       stashPop: (repoPath: string, ref?: string) => Promise<void>
@@ -182,6 +186,10 @@ export const gitApi = {
   abortRebase: (repoPath: string): Promise<void> => window.git.abortRebase(repoPath),
   getConflicts: (repoPath: string): Promise<ConflictFile[]> => window.git.getConflicts(repoPath),
   resolveConflict: (repoPath: string, filePath: string, strategy: 'ours' | 'theirs'): Promise<void> => window.git.resolveConflict(repoPath, filePath, strategy),
+  readConflictFile: (repoPath: string, filePath: string): Promise<string> => window.git.readConflictFile(repoPath, filePath),
+  resolveConflictManual: (repoPath: string, filePath: string, content: string): Promise<void> => window.git.resolveConflictManual(repoPath, filePath, content),
+  getLastUndoable: (repoPath: string): Promise<UndoableAction | null> => window.git.getLastUndoable(repoPath),
+  undoLast: (repoPath: string): Promise<void> => window.git.undoLast(repoPath),
   stageHunk: (repoPath: string, patch: string): Promise<void> => window.git.stageHunk(repoPath, patch),
   unstageHunk: (repoPath: string, patch: string): Promise<void> => window.git.unstageHunk(repoPath, patch),
   stashPop: (repoPath: string, ref?: string): Promise<void> => window.git.stashPop(repoPath, ref),

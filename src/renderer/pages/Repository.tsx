@@ -1,7 +1,7 @@
 import { useEffect, useState, useRef, useCallback, useMemo } from 'react'
 import { useQueryClient } from '@tanstack/react-query'
 import { useShortcut } from '@/hooks/useShortcut'
-import { GitBranch, ChevronDown } from 'lucide-react'
+import { GitBranch, ChevronDown, Undo2 } from 'lucide-react'
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -27,6 +27,7 @@ import { RebaseDialog } from '@/components/git/RebaseDialog'
 import { RemotesDialog } from '@/components/git/RemotesDialog'
 import { ReflogPanel } from '@/components/git/ReflogPanel'
 import { ConflictPanel } from '@/components/git/ConflictPanel'
+import { MergeEditor } from '@/components/git/MergeEditor'
 import { InteractiveRebaseDialog } from '@/components/git/InteractiveRebaseDialog'
 import { StashDialog } from '@/components/git/StashDialog'
 import { CompareDialog } from '@/components/git/CompareDialog'
@@ -58,6 +59,7 @@ import {
   useBranchMutations, useRemoteMutations, useStashMutations,
   useCommitGraphMutations, useBranchMerge, useTagMutations,
   useStashExtras, useBranchExtras, useGitignoreMutations,
+  useLastUndoable, useUndoMutation,
 } from '@/hooks/useRepo'
 import type { GitRevision, RefGroups, LogOptions, RepoInfo } from '@/types/git'
 
@@ -110,6 +112,8 @@ export default function Repository() {
   const tagMutations = useTagMutations(repoPath)
   const branchExtras = useBranchExtras(repoPath)
   const gitignoreMutations = useGitignoreMutations(repoPath)
+  const { data: lastUndoable } = useLastUndoable(repoPath)
+  const undo = useUndoMutation(repoPath)
 
   const [selectedId, setSelectedId] = useState<string | null>(null)
   // A commit picked from the command palette may live outside the loaded graph
@@ -150,6 +154,7 @@ export default function Repository() {
   const [lfsOpen, setLfsOpen] = useState(false)
   const [settingsOpen, setSettingsOpen] = useState(false)
   const [settingsTab, setSettingsTab] = useState<'general' | 'github' | undefined>(undefined)
+  const [mergeEditorFile, setMergeEditorFile] = useState<string | null>(null)
   // GitHub
   const [ghAuthOpen, setGhAuthOpen] = useState(false)
   const [ghReposOpen, setGhReposOpen] = useState(false)
@@ -457,6 +462,24 @@ export default function Repository() {
                 </button>
               )}
               <div className="ml-auto flex items-center gap-1 text-[12px] text-muted-foreground">
+                {lastUndoable && (
+                  <>
+                    <button
+                      onClick={() => undo.mutate()}
+                      disabled={lastUndoable.unsafe || undo.isPending}
+                      title={
+                        lastUndoable.unsafe
+                          ? `Can't undo “${lastUndoable.action}” — commit or stash your changes first`
+                          : `Undo “${lastUndoable.action}” → ${lastUndoable.target}`
+                      }
+                      className="flex items-center gap-1 px-2 py-0.5 rounded-md hover:bg-muted transition-colors disabled:opacity-40"
+                    >
+                      <Undo2 className="size-3.5" />
+                      Undo
+                    </button>
+                    <span className="h-3 w-px bg-border mx-0.5" />
+                  </>
+                )}
                 <button
                   onClick={() => { setShowStaging(false); setLogFilter((f) => ({ ...f, onlyCurrentBranch: false })) }}
                   className={`px-2 py-0.5 rounded-md transition-colors ${!showStaging && !logFilter.onlyCurrentBranch ? 'bg-muted' : 'hover:bg-muted'}`}
@@ -556,7 +579,7 @@ export default function Repository() {
             <div style={{ height: detailsPx }} className="flex-none overflow-hidden flex flex-col">
               {showStaging ? (
                 <>
-                  <ConflictPanel repoPath={repoPath} />
+                  <ConflictPanel repoPath={repoPath} onOpenEditor={(f) => setMergeEditorFile(f)} />
                   <StagingArea
                     repoPath={repoPath}
                     onAddToGitignore={(pattern) => gitignoreMutations.addPattern.mutate(pattern)}
@@ -650,6 +673,13 @@ export default function Repository() {
       />
 
       <CloneDialog open={cloneOpen} onClose={() => setCloneOpen(false)} />
+
+      <MergeEditor
+        open={mergeEditorFile !== null}
+        onOpenChange={(o) => { if (!o) setMergeEditorFile(null) }}
+        repoPath={repoPath}
+        filePath={mergeEditorFile}
+      />
 
       <MergeDialog
         open={mergeOpen}

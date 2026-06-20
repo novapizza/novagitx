@@ -7,7 +7,7 @@ import { buildGraphLanes } from './GraphBuilder.js'
 import { StatusParser } from './StatusParser.js'
 import { DiffParser } from './DiffParser.js'
 import { tmpdir } from 'os'
-import type { GitRevision, GitItemStatus, DiffFile, LogOptions, RepoInfo, RefGroups, BlameLine, ReflogEntry, Remote, ConflictFile, StashEntry, Submodule, CleanEntry, RebaseCommit, Worktree, FsckResult, CommitSignature, SparseCheckoutInfo, GitConfigEntry, BisectStatus, LfsStatus, LfsFile } from './types.js'
+import type { GitRevision, GitItemStatus, DiffFile, LogOptions, RepoInfo, RefGroups, BlameLine, ReflogEntry, Remote, ConflictFile, UndoableAction, StashEntry, Submodule, CleanEntry, RebaseCommit, Worktree, FsckResult, CommitSignature, SparseCheckoutInfo, GitConfigEntry, BisectStatus, LfsStatus, LfsFile } from './types.js'
 
 export class GitModule {
   private readonly executor: GitExecutor
@@ -416,6 +416,74 @@ export class GitModule {
     if (result.exitCode !== 0) throw new Error(result.stderr.trim())
     await this.stageFile(filePath)
     void ref
+  }
+
+  /** Raw working-tree content of a conflicted file (with `<<<<<<<` markers intact). */
+  async readConflictFile(filePath: string): Promise<string> {
+    return readFileSync(join(this.repoPath, filePath), 'utf8')
+  }
+
+  /** Write the manually-resolved content of a file and stage it as resolved. */
+  async resolveConflictManual(filePath: string, content: string): Promise<void> {
+    writeFileSync(join(this.repoPath, filePath), content, 'utf8')
+    await this.stageFile(filePath)
+  }
+
+  // ── Undo last action ───────────────────────────────────────────────────────
+
+  /**
+   * Inspect HEAD's reflog to describe the last operation that can be reversed.
+   * Returns null when there is no prior state or the action isn't safely
+   * reversible automatically.
+   */
+  async getLastUndoable(): Promise<UndoableAction | null> {
+    const r = await this.executor.run(['reflog', '--format=%h%x00%gs', '-2'])
+    if (r.exitCode !== 0) return null
+    const recs = r.stdout.split('\n').filter(Boolean)
+    if (recs.length < 2) return null
+
+    const detail = recs[0].split('\0')[1] ?? ''
+    const target = recs[1].split('\0')[0] ?? ''
+    if (!target) return null
+
+    // The reflog subject reads like "commit: msg" / "merge x: ..." / "reset: ...".
+    const verb = detail.split(':')[0].trim()
+    const action = verb.split(' ')[0] || verb
+
+    let method: UndoableAction['method']
+    if (/^commit/.test(verb)) method = 'soft-reset'           // keep the work, just un-commit
+    else if (/^(merge|pull|cherry-pick|revert|rebase|reset)$/.test(action)) method = 'hard-reset'
+    else if (action === 'checkout') method = 'checkout'
+    else return null                                          // unknown / not auto-reversible
+
+    let unsafe = false
+    if (method === 'hard-reset') {
+      const st = await this.executor.run(['status', '--porcelain'])
+      unsafe = st.stdout.trim().length > 0
+    }
+
+    return { action: verb, detail, target, method, unsafe }
+  }
+
+  /** Reverse the last operation described by {@link getLastUndoable}. */
+  async undoLast(): Promise<void> {
+    const u = await this.getLastUndoable()
+    if (!u) throw new Error('Nothing to undo.')
+    if (u.unsafe) {
+      throw new Error(`Undoing “${u.action}” would discard uncommitted changes — commit or stash them first.`)
+    }
+
+    if (u.method === 'checkout') {
+      const m = u.detail.match(/moving from (.+?) to /)
+      const dest = m ? m[1] : '-'
+      const result = await this.executor.run(['checkout', dest])
+      if (result.exitCode !== 0) throw new Error(result.stderr.trim())
+      return
+    }
+
+    const mode = u.method === 'soft-reset' ? '--soft' : '--hard'
+    const result = await this.executor.run(['reset', mode, 'HEAD@{1}'])
+    if (result.exitCode !== 0) throw new Error(result.stderr.trim())
   }
 
   // ── Partial staging ───────────────────────────────────────────────────────

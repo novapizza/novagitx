@@ -55,6 +55,8 @@ export default {
           del: "hsl(var(--diff-del))",
           "del-fg": "hsl(var(--diff-del-fg))",
           "del-bar": "hsl(var(--diff-del-bar))",
+          "add-word": "hsl(var(--diff-add-word))",
+          "del-word": "hsl(var(--diff-del-word))",
         },
       },
       borderRadius: {

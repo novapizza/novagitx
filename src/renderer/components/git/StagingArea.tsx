@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
 import { Plus, Minus, GitCommit, Archive, Trash2, Copy, FileText } from 'lucide-react'
 import type { GitItemStatus, DiffLine } from '@/types/git'
 import { useStatus, useCommitMutations, useCommitMutationsExtra, useStashMutations, useWorkingDiff, useStagedDiff, useHunkMutations, useSignedCommit } from '@/hooks/useRepo'
@@ -10,6 +10,7 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import { SplitDiffBody, DiffModeToggle } from './SplitDiff'
+import { computeIntraLineSegments, SegmentedText } from '@/lib/wordDiff'
 import { useUiStore } from '@/store/uiStore'
 
 interface StagingAreaProps {
@@ -240,6 +241,7 @@ function DiffPane({
 }) {
   const { stageHunk, unstageHunk } = useHunkMutations(repoPath)
   const viewMode = useUiStore((s) => s.diffViewMode)
+  const segMap = useMemo(() => computeIntraLineSegments(lines), [lines])
 
   if (!filePath) {
     return (
@@ -290,7 +292,13 @@ function DiffPane({
                     <td className="select-none w-10 text-right pr-2 text-muted-foreground/60 border-r border-border/40">{l.oldLineNum ?? ''}</td>
                     <td className="select-none w-10 text-right pr-2 text-muted-foreground/60 border-r border-border/40">{l.newLineNum ?? ''}</td>
                     <td className={`select-none w-5 text-center ${fg}`}>{sign}</td>
-                    <td className={`pl-2 whitespace-pre ${fg} w-full`}>{l.text}</td>
+                    <td className={`pl-2 whitespace-pre ${fg} w-full`}>
+                      {segMap.has(l) ? (
+                        <SegmentedText segments={segMap.get(l)!} kind={l.type === 'add' ? 'add' : 'del'} />
+                      ) : (
+                        l.text
+                      )}
+                    </td>
                     {l.type === 'hunk' && hunkIdx !== -1 && (
                       <td className="px-2 text-right">
                         <button
