@@ -554,7 +554,7 @@ export class GitModule {
   // ── Compare refs ─────────────────────────────────────────────────────────
 
   async compareDiff(ref1: string, ref2: string, filePath?: string): Promise<DiffFile[]> {
-    const args = ['diff', '--unified=3', '--no-color', `${ref1}...${ref2}`]
+    const args = ['diff', '--unified=3', '--no-color', `${ref1}..${ref2}`]
     if (filePath) args.push('--', filePath)
     const result = await this.executor.run(args)
     if (result.exitCode !== 0 && !result.stdout) return []

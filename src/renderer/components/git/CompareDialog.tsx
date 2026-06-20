@@ -40,7 +40,7 @@ export function CompareDialog({ open, onOpenChange, repoPath, refs }: Props) {
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[720px] h-[560px] flex flex-col gap-0 p-0">
+      <DialogContent className="max-w-[min(1100px,90vw)] w-[90vw] h-[80vh] flex flex-col gap-0 p-0">
         <DialogHeader className="px-4 pt-4 pb-3 border-b border-border">
           <DialogTitle className="flex items-center gap-2 text-[14px]">
             <GitBranch className="size-4" />
