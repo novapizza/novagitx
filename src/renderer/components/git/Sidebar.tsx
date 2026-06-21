@@ -183,6 +183,7 @@ interface SidebarProps {
   onSetUpstream?: (branch: string) => void
   onPruneRemote?: (remote: string) => void
   onPopStash?: (ref: string) => void
+  width?: number
 }
 
 export function Sidebar({
@@ -204,6 +205,7 @@ export function Sidebar({
   onSetUpstream,
   onPruneRemote,
   onPopStash,
+  width = 260,
 }: SidebarProps) {
   const abbr = initials(repoName)
   const { recentRepos, setRepo, removeRecent } = useRepoStore()
@@ -239,7 +241,7 @@ export function Sidebar({
   const otherRepos = recentRepos.filter((r) => r.path !== recentRepos.find((x) => x.name === repoName)?.path)
 
   return (
-    <aside className="vibrancy w-[260px] shrink-0 border-r border-sidebar-border flex flex-col">
+    <aside style={{ width }} className="vibrancy shrink-0 border-r border-sidebar-border flex flex-col">
       <div className="px-3 pt-3 pb-2">
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
