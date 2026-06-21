@@ -188,6 +188,27 @@ export default function Repository() {
     document.addEventListener('mouseup', onResizeEnd)
   }
 
+  const [sidebarPx, setSidebarPx] = useState(260)
+  const sidebarDragRef = useRef<{ startX: number; startW: number } | null>(null)
+
+  const onSidebarResizeMove = useCallback((e: MouseEvent) => {
+    if (!sidebarDragRef.current) return
+    const delta = e.clientX - sidebarDragRef.current.startX
+    setSidebarPx(Math.max(180, Math.min(500, sidebarDragRef.current.startW + delta)))
+  }, [])
+
+  const onSidebarResizeEnd = useCallback(() => {
+    sidebarDragRef.current = null
+    document.removeEventListener('mousemove', onSidebarResizeMove)
+    document.removeEventListener('mouseup', onSidebarResizeEnd)
+  }, [onSidebarResizeMove])
+
+  function onSidebarResizeStart(e: React.MouseEvent) {
+    sidebarDragRef.current = { startX: e.clientX, startW: sidebarPx }
+    document.addEventListener('mousemove', onSidebarResizeMove)
+    document.addEventListener('mouseup', onSidebarResizeEnd)
+  }
+
   const selected =
     commits.find((c) => c.objectId === selectedId) ??
     (pickedCommit?.objectId === selectedId ? pickedCommit : null) ??
@@ -436,6 +457,12 @@ export default function Repository() {
             onSelectRef={handleSelectRef}
             onSetUpstream={(branch) => setSetUpstreamBranch(branch)}
             onPruneRemote={(remote) => gitApi.pruneRemote(repoPath!, remote)}
+            width={sidebarPx}
+          />
+
+          <div
+            onMouseDown={onSidebarResizeStart}
+            className="w-1 shrink-0 cursor-col-resize border-r border-sidebar-border hover:border-primary/60 transition-colors select-none"
           />
 
           <section className="flex-1 min-w-0 flex overflow-hidden bg-window">
