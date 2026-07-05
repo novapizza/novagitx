@@ -127,6 +127,7 @@ declare global {
     }
     appOS: {
       platform: NodeJS.Platform
+      homeDir: string
       onRepoOpenedFromOS: (cb: (info: RepoInfo) => void) => () => void
       toggleMaximize: () => Promise<void>
       openExternal: (url: string) => Promise<void>

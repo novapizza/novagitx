@@ -1,4 +1,5 @@
 import { contextBridge, ipcRenderer } from 'electron/renderer'
+import { homedir } from 'node:os'
 import { CHANNELS } from '../main/ipc/channels.js'
 
 const themeApi = {
@@ -17,6 +18,7 @@ import type { LogOptions, BlameLine, ReflogEntry, Remote, ConflictFile, Undoable
 
 const appApi = {
   platform: process.platform as NodeJS.Platform,
+  homeDir: homedir(),
   onRepoOpenedFromOS: (cb: (info: RepoInfo) => void) => {
     const listener = (_: Electron.IpcRendererEvent, info: RepoInfo) => cb(info)
     ipcRenderer.on(CHANNELS.REPO_OPENED_FROM_OS, listener)

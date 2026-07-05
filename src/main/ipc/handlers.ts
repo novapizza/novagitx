@@ -14,6 +14,25 @@ import { spawn } from 'child_process'
 
 const modules = new Map<string, GitModule>()
 
+/**
+ * Resolve the `ssh-keygen` binary. Relies on PATH first (the common case), but
+ * on Windows PATH often lacks it, so fall back to Git for Windows' bundled
+ * OpenSSH and the Windows optional OpenSSH client before giving up.
+ */
+function resolveSshKeygen(): string {
+  if (process.platform === 'win32') {
+    const candidates = [
+      process.env.ProgramFiles && join(process.env.ProgramFiles, 'Git', 'usr', 'bin', 'ssh-keygen.exe'),
+      process.env['ProgramFiles(x86)'] && join(process.env['ProgramFiles(x86)']!, 'Git', 'usr', 'bin', 'ssh-keygen.exe'),
+      process.env.SystemRoot && join(process.env.SystemRoot, 'System32', 'OpenSSH', 'ssh-keygen.exe'),
+    ].filter((p): p is string => Boolean(p))
+    for (const candidate of candidates) {
+      if (existsSync(candidate)) return candidate
+    }
+  }
+  return 'ssh-keygen'
+}
+
 function getModule(repoPath: string): GitModule {
   if (!modules.has(repoPath)) modules.set(repoPath, new GitModule(repoPath))
   return modules.get(repoPath)!
@@ -534,10 +553,20 @@ export function registerHandlers(): void {
       if (args.type === 'rsa') cmdArgs.push('-b', '4096')
       cmdArgs.push('-f', target, '-C', args.comment || '', '-N', args.passphrase || '')
       await new Promise<void>((resolve, reject) => {
-        const proc = spawn('ssh-keygen', cmdArgs, { stdio: 'pipe' })
+        const proc = spawn(resolveSshKeygen(), cmdArgs, { stdio: 'pipe' })
         let stderr = ''
         proc.stderr.on('data', (d) => { stderr += d.toString() })
-        proc.on('error', reject)
+        proc.on('error', (err: NodeJS.ErrnoException) => {
+          if (err.code === 'ENOENT') {
+            reject(new Error(
+              process.platform === 'win32'
+                ? 'ssh-keygen was not found. Install Git for Windows or enable the OpenSSH client (Settings → Apps → Optional features).'
+                : 'ssh-keygen was not found. Install OpenSSH and make sure it is on your PATH.',
+            ))
+            return
+          }
+          reject(err)
+        })
         proc.on('close', (code) => {
           if (code === 0) resolve()
           else reject(new Error(stderr.trim() || `ssh-keygen exited ${code}`))

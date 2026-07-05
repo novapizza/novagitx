@@ -79,6 +79,19 @@ module.exports = {
   win: {
     icon: 'build/icon.ico',
     target: [{ target: 'nsis', arch: ['x64', 'arm64'] }],
+    // Authenticode signing. Stays inert (unsigned build, no error) until a cert is
+    // supplied via env — set WIN_CSC_LINK (path/base64 of a .pfx) and
+    // WIN_CSC_KEY_PASSWORD in CI to produce signed EXEs and avoid SmartScreen
+    // warnings. An EV cert gives instant reputation. electron-builder also honors
+    // the standard CSC_LINK / CSC_KEY_PASSWORD names automatically.
+    signtoolOptions: process.env.WIN_CSC_LINK
+      ? {
+          certificateFile: process.env.WIN_CSC_LINK,
+          certificatePassword: process.env.WIN_CSC_KEY_PASSWORD,
+          signingHashAlgorithms: ['sha256'],
+          rfc3161TimeStampServer: 'http://timestamp.digicert.com',
+        }
+      : undefined,
   },
 
   nsis: {

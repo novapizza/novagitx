@@ -9,6 +9,26 @@ import {
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip'
 import { useThemeContext } from '@/ThemeContext'
 import type { ThemeMode } from '@/hooks/useTheme'
+import { formatCombo } from '@/lib/keys'
+
+/** Collapse the user's home directory to `~`, matching the current OS's path style. */
+function shortenHome(repoPath: string): string {
+  const home = window.appOS.homeDir
+  if (!home) return repoPath
+  if (window.appOS.platform === 'win32') {
+    // Windows paths are case-insensitive and use backslashes (though Git may report either).
+    const norm = (s: string) => s.replace(/\//g, '\\').toLowerCase()
+    const nHome = norm(home).replace(/\\+$/, '')
+    const nPath = norm(repoPath)
+    if (nPath === nHome || nPath.startsWith(nHome + '\\')) {
+      return '~' + repoPath.slice(home.length)
+    }
+    return repoPath
+  }
+  return repoPath === home || repoPath.startsWith(home + '/')
+    ? '~' + repoPath.slice(home.length)
+    : repoPath
+}
 
 interface TitleBarProps {
   repoName: string
@@ -52,7 +72,7 @@ export function TitleBar({
   isPulling,
   isPushing,
 }: TitleBarProps) {
-  const displayPath = repoPath.replace(/^\/Users\/[^/]+/, '~')
+  const displayPath = shortenHome(repoPath)
   const isMac = window.appOS.platform === 'darwin'
   // mac: leave room for traffic lights on the left.
   // win/linux: leave room for window-controls overlay on the right (~140px covers min/max/close).
@@ -87,8 +107,7 @@ export function TitleBar({
         <Search className="size-4" />
         <span className="truncate">Search commits, branches, files…</span>
         <span className="ml-auto flex items-center gap-1 text-[11.5px] text-muted-foreground/80">
-          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono">⌘</kbd>
-          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono">K</kbd>
+          <kbd className="px-1.5 py-0.5 rounded bg-muted border border-border/60 font-mono">{formatCombo('Mod+K')}</kbd>
         </span>
       </button>
 

@@ -5,6 +5,7 @@ import {
 } from 'lucide-react'
 import type { RefGroups, GitRevision } from '@/types/git'
 import { useTrackedFiles, useCommitSearch } from '@/hooks/useRepo'
+import { formatCombo } from '@/lib/keys'
 
 export type PaletteAction = 'pull' | 'push' | 'fetch' | 'new-branch' | 'merge' | 'open-repo' | 'settings'
 
@@ -35,14 +36,16 @@ interface CommandPaletteProps {
 // Per-group caps so one source can't crowd the others out of view.
 const CAP = { branches: 8, remotes: 6, tags: 6, commits: 12, files: 12 }
 
+// Hints are stored as platform-neutral combos and rendered via formatCombo(),
+// which resolves ⌘/⇧ on macOS and Ctrl/Shift on Windows/Linux.
 const ACTIONS: { id: PaletteAction; icon: typeof Search; label: string; hint: string }[] = [
-  { id: 'pull',       icon: ArrowDownToLine, label: 'Pull from remote',  hint: '⌘⇧P' },
-  { id: 'push',       icon: ArrowUpFromLine, label: 'Push to remote',    hint: '⌘⇧U' },
-  { id: 'fetch',      icon: RotateCw,        label: 'Fetch from remote', hint: '⌘⇧F' },
-  { id: 'new-branch', icon: GitBranch,       label: 'New branch…',       hint: '⌘⇧B' },
-  { id: 'merge',      icon: GitMerge,        label: 'Merge a branch…',   hint: '⌘⇧M' },
-  { id: 'open-repo',  icon: FolderOpen,      label: 'Open repository…',  hint: '⌘O'  },
-  { id: 'settings',   icon: Settings2,       label: 'Settings…',         hint: '⌘,'  },
+  { id: 'pull',       icon: ArrowDownToLine, label: 'Pull from remote',  hint: 'Mod+Shift+P' },
+  { id: 'push',       icon: ArrowUpFromLine, label: 'Push to remote',    hint: 'Mod+Shift+U' },
+  { id: 'fetch',      icon: RotateCw,        label: 'Fetch from remote', hint: 'Mod+Shift+F' },
+  { id: 'new-branch', icon: GitBranch,       label: 'New branch…',       hint: 'Mod+Shift+B' },
+  { id: 'merge',      icon: GitMerge,        label: 'Merge a branch…',   hint: 'Mod+Shift+M' },
+  { id: 'open-repo',  icon: FolderOpen,      label: 'Open repository…',  hint: 'Mod+O'  },
+  { id: 'settings',   icon: Settings2,       label: 'Settings…',         hint: 'Mod+,'  },
 ]
 
 function basename(path: string): string {
@@ -181,7 +184,7 @@ export function CommandPalette({
         key: `action:${a.id}`,
         icon: a.icon,
         label: a.label,
-        hint: a.hint,
+        hint: formatCombo(a.hint),
         run: () => { onRunAction(a.id); close() },
       }))
     if (actions.length) groups.push({ name: 'Actions', items: actions })

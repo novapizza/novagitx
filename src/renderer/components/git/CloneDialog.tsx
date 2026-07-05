@@ -81,7 +81,7 @@ export function CloneDialog({ open, onClose }: CloneDialogProps) {
               <input
                 value={destination}
                 onChange={(e) => setDestination(e.target.value)}
-                placeholder="/Users/you/Projects/repo-name"
+                placeholder={window.appOS.platform === 'win32' ? 'C:\\Users\\you\\Projects\\repo-name' : '/Users/you/Projects/repo-name'}
                 className="flex-1 h-9 rounded-md border border-border bg-background px-3 text-[13px] font-mono outline-none focus:ring-1 focus:ring-primary/50"
               />
               <button

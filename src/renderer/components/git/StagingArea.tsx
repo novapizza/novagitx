@@ -10,6 +10,7 @@ import {
   ContextMenuTrigger,
 } from '@/components/ui/context-menu'
 import { SplitDiffBody, DiffModeToggle } from './SplitDiff'
+import { formatCombo } from '@/lib/keys'
 import { computeIntraLineSegments, SegmentedText } from '@/lib/wordDiff'
 import { useUiStore } from '@/store/uiStore'
 
@@ -193,7 +194,7 @@ export function StagingArea({ repoPath, onAddToGitignore }: StagingAreaProps) {
           >
             <GitCommit className="size-3.5" />
             {commit.isPending || amend.isPending || signedCommit.isPending ? 'Working…' : amendMode ? 'Amend' : signCommit ? 'Commit (signed)' : 'Commit'}
-            <span className="text-[10px] opacity-70 ml-1">⌘↵</span>
+            <span className="text-[10px] opacity-70 ml-1">{formatCombo('Mod+Enter')}</span>
           </button>
           {(commit.isError || amend.isError || signedCommit.isError) && (
             <p className="text-[11px] text-destructive">{String(((commit.error || amend.error || signedCommit.error) as any)?.message ?? 'Failed')}</p>

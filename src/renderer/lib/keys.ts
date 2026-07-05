@@ -25,6 +25,7 @@ export function formatCombo(c: Combo): string {
       .replaceAll('Mod', '⌘')
       .replaceAll('Shift', '⇧')
       .replaceAll('Alt', '⌥')
+      .replaceAll('Enter', '↵')
       .replaceAll('+', '')
   }
   return c.replaceAll('Mod', 'Ctrl').replaceAll('+', ' + ')
