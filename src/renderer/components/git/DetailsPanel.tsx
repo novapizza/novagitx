@@ -23,6 +23,10 @@ interface DetailsPanelProps {
 
 type PanelView = 'diff' | 'history' | 'blame'
 
+const FILE_LIST_MIN = 160
+const FILE_LIST_MAX = 900
+const FILE_LIST_DEFAULT = 280
+
 export function DetailsPanel({ commit, repoPath }: DetailsPanelProps) {
   const [tab, setTab] = useState<'commit' | 'diff'>('diff')
   const [activeFile, setActiveFile] = useState<string | null>(null)
@@ -31,6 +35,31 @@ export function DetailsPanel({ commit, repoPath }: DetailsPanelProps) {
   const [blameFile, setBlameFile] = useState<string | null>(null)
 
   const { data: files = [] } = useDiff(repoPath, commit?.objectId ?? null)
+
+  const fileListWidth = useUiStore((s) => s.detailsFileListWidth)
+  const setFileListWidth = useUiStore((s) => s.setDetailsFileListWidth)
+
+  function startFileListResize(e: React.MouseEvent) {
+    e.preventDefault()
+    const startX = e.clientX
+    const startW = fileListWidth
+    // Leave at least FILE_LIST_MIN for the diff/commit pane on the right.
+    const container = (e.currentTarget as HTMLElement).parentElement
+    const max = Math.max(FILE_LIST_MIN, Math.min(FILE_LIST_MAX, (container?.clientWidth ?? Infinity) - FILE_LIST_MIN))
+    function onMove(ev: MouseEvent) {
+      setFileListWidth(Math.round(Math.min(max, Math.max(FILE_LIST_MIN, startW + ev.clientX - startX))))
+    }
+    function onUp() {
+      document.removeEventListener('mousemove', onMove)
+      document.removeEventListener('mouseup', onUp)
+      document.body.style.cursor = ''
+      document.body.style.userSelect = ''
+    }
+    document.body.style.cursor = 'col-resize'
+    document.body.style.userSelect = 'none'
+    document.addEventListener('mousemove', onMove)
+    document.addEventListener('mouseup', onUp)
+  }
 
   const resolvedFile = activeFile ?? files[0]?.path ?? null
 
@@ -83,8 +112,19 @@ export function DetailsPanel({ commit, repoPath }: DetailsPanelProps) {
         )}
       </div>
 
-      <div className="flex-1 min-h-0 grid grid-cols-[280px_1fr] overflow-hidden">
-        <div className="border-r border-border overflow-y-auto scrollbar-mac">
+      <div
+        className="relative flex-1 min-h-0 grid overflow-hidden"
+        style={{ gridTemplateColumns: `${fileListWidth}px minmax(0, 1fr)` }}
+      >
+        {/* Drag handle on the file list's right edge; double-click resets the width. */}
+        <div
+          onMouseDown={startFileListResize}
+          onDoubleClick={() => setFileListWidth(FILE_LIST_DEFAULT)}
+          title="Drag to resize · double-click to reset"
+          className="absolute top-0 bottom-0 z-10 w-1.5 -ml-[3px] cursor-col-resize hover:bg-primary/40 transition-colors"
+          style={{ left: fileListWidth }}
+        />
+        <div className="min-w-0 border-r border-border overflow-y-auto scrollbar-mac">
           <div className="px-3 py-2 text-[10.5px] uppercase tracking-wider text-muted-foreground font-semibold">
             {files.length} changed files
           </div>

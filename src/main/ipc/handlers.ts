@@ -11,6 +11,7 @@ import { existsSync, readFileSync, writeFileSync, readdirSync } from 'fs'
 import { homedir } from 'os'
 import { join } from 'path'
 import { spawn } from 'child_process'
+import { findExecutable } from '../findExecutable.js'
 
 const modules = new Map<string, GitModule>()
 
@@ -20,17 +21,16 @@ const modules = new Map<string, GitModule>()
  * OpenSSH and the Windows optional OpenSSH client before giving up.
  */
 function resolveSshKeygen(): string {
-  if (process.platform === 'win32') {
-    const candidates = [
-      process.env.ProgramFiles && join(process.env.ProgramFiles, 'Git', 'usr', 'bin', 'ssh-keygen.exe'),
-      process.env['ProgramFiles(x86)'] && join(process.env['ProgramFiles(x86)']!, 'Git', 'usr', 'bin', 'ssh-keygen.exe'),
-      process.env.SystemRoot && join(process.env.SystemRoot, 'System32', 'OpenSSH', 'ssh-keygen.exe'),
-    ].filter((p): p is string => Boolean(p))
-    for (const candidate of candidates) {
-      if (existsSync(candidate)) return candidate
-    }
-  }
-  return 'ssh-keygen'
+  return findExecutable(
+    'ssh-keygen',
+    process.platform === 'win32'
+      ? [
+          process.env.ProgramFiles && join(process.env.ProgramFiles, 'Git', 'usr', 'bin', 'ssh-keygen.exe'),
+          process.env['ProgramFiles(x86)'] && join(process.env['ProgramFiles(x86)']!, 'Git', 'usr', 'bin', 'ssh-keygen.exe'),
+          process.env.SystemRoot && join(process.env.SystemRoot, 'System32', 'OpenSSH', 'ssh-keygen.exe'),
+        ]
+      : [],
+  )
 }
 
 function getModule(repoPath: string): GitModule {
@@ -553,7 +553,7 @@ export function registerHandlers(): void {
       if (args.type === 'rsa') cmdArgs.push('-b', '4096')
       cmdArgs.push('-f', target, '-C', args.comment || '', '-N', args.passphrase || '')
       await new Promise<void>((resolve, reject) => {
-        const proc = spawn(resolveSshKeygen(), cmdArgs, { stdio: 'pipe' })
+        const proc = spawn(resolveSshKeygen(), cmdArgs, { stdio: 'pipe', windowsHide: true })
         let stderr = ''
         proc.stderr.on('data', (d) => { stderr += d.toString() })
         proc.on('error', (err: NodeJS.ErrnoException) => {
@@ -697,7 +697,7 @@ export function registerHandlers(): void {
 }
 
 function expandHome(p: string): string {
-  if (p.startsWith('~/')) return join(homedir(), p.slice(2))
+  if (p.startsWith('~/') || p.startsWith('~\\')) return join(homedir(), p.slice(2))
   if (p === '~') return homedir()
   return p
 }
