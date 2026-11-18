@@ -10,7 +10,7 @@ import { initAutoUpdater } from './updater.js'
 import { buildAppMenu } from './menu.js'
 
 const { app, BrowserWindow, nativeTheme } = electronMain
-const __dirname = fileURLToPath(new URL('.', import.meta.url))
+const mainDir = fileURLToPath(new URL('.', import.meta.url))
 const isDev = process.env.NODE_ENV === 'development'
 
 let mainWindow: Electron.BrowserWindow | null = null
@@ -81,7 +81,7 @@ function createWindow(): void {
 
   // For mac, .icns embedded in the bundle is used; ignored elsewhere.
   // For Windows/Linux dev runs the bundled .ico/.png isn't available, so point at resources/icon.png.
-  const iconPath = isMac ? undefined : join(__dirname, '../../resources/icon.png')
+  const iconPath = isMac ? undefined : join(mainDir, '../../resources/icon.png')
 
   mainWindow = new BrowserWindow({
     width: 1400,
@@ -92,7 +92,7 @@ function createWindow(): void {
     ...(iconPath ? { icon: iconPath } : {}),
     ...platformOpts,
     webPreferences: {
-      preload: join(__dirname, '../preload/index.js'),
+      preload: join(mainDir, '../preload/index.js'),
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
@@ -117,7 +117,7 @@ function createWindow(): void {
   if (isDev && process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
-    mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
+    mainWindow.loadFile(join(mainDir, '../renderer/index.html'))
   }
 }
 

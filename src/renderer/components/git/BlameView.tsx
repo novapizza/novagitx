@@ -69,7 +69,16 @@ export function BlameView({ repoPath, filePath, commitHash, onClose, onSelectCom
         </div>
       )}
 
-      {!isLoading && !error && (
+      {!isLoading && !error && lines.length === 0 && (
+        <div className="flex flex-col items-center justify-center flex-1 gap-1 px-6 text-center">
+          <span className="text-[12px] text-foreground/80">Nothing to blame</span>
+          <span className="text-[11px] text-muted-foreground/70">
+            This file doesn't exist at the selected commit, or it is empty.
+          </span>
+        </div>
+      )}
+
+      {!isLoading && !error && lines.length > 0 && (
         <div className="relative flex-1 min-h-0">
           {/* Drag handle to resize the blame gutter. Pinned to the body (not the scroll
               content) so it stays full-height while the line list scrolls vertically. */}

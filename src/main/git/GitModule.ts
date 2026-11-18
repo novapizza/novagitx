@@ -293,6 +293,10 @@ export class GitModule {
       const parent = await run(`${commitHash}^`)
       if (parent.exitCode === 0) result = parent
     }
+    // Still missing: the file doesn't exist at this commit (e.g. the Blame panel is
+    // open while browsing commits from before the file was added). That's an
+    // expected state, not an error, so return nothing rather than throwing.
+    if (result.exitCode !== 0 && /no such path/i.test(result.stderr)) return []
     if (result.exitCode !== 0) throw new Error(result.stderr.trim())
     return this.parseBlame(result.stdout)
   }
@@ -714,9 +718,11 @@ export class GitModule {
   async addToGitignore(pattern: string): Promise<void> {
     const p = join(this.repoPath, '.gitignore')
     const existing = existsSync(p) ? readFileSync(p, 'utf8') : ''
-    const lines = existing.split('\n')
-    if (!lines.includes(pattern)) {
-      writeFileSync(p, (existing.endsWith('\n') || existing === '' ? existing : existing + '\n') + pattern + '\n', 'utf8')
+    // Split on \r?\n so CRLF files (common on Windows) still match existing entries.
+    const lines = existing.split(/\r?\n/).map((l) => l.trim())
+    if (!lines.includes(pattern.trim())) {
+      const eol = existing.includes('\r\n') ? '\r\n' : '\n'
+      writeFileSync(p, (existing.endsWith('\n') || existing === '' ? existing : existing + eol) + pattern + eol, 'utf8')
     }
   }
 

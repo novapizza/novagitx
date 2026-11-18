@@ -34,6 +34,8 @@ exports.default = async function afterPack(context) {
       ),
       (n) => !n.endsWith('.lproj') || KEEP_LPROJ.has(n)
     )
+    // Do NOT delete ffmpeg.dll / libffmpeg.dylib: Chromium loads it at renderer
+    // startup and the renderer crashes without it (verified on Windows).
   } else {
     resourcesDir = path.join(appOutDir, 'resources')
     pruneDir(path.join(appOutDir, 'locales'), (n) => KEEP_PAK.has(n))

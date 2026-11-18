@@ -12,6 +12,9 @@ interface UiStore {
   setDiffViewMode: (mode: DiffViewMode) => void
   branchView: BranchView
   setBranchView: (view: BranchView) => void
+  /** Width (px) of the changed-files list in the commit details panel. */
+  detailsFileListWidth: number
+  setDetailsFileListWidth: (width: number) => void
 }
 
 export const useUiStore = create<UiStore>()(
@@ -21,6 +24,8 @@ export const useUiStore = create<UiStore>()(
       setDiffViewMode: (mode) => set({ diffViewMode: mode }),
       branchView: 'grouped',
       setBranchView: (view) => set({ branchView: view }),
+      detailsFileListWidth: 280,
+      setDetailsFileListWidth: (width) => set({ detailsFileListWidth: width }),
     }),
     { name: 'nova-git-x-ui' }
   )

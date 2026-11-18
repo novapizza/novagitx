@@ -285,6 +285,8 @@ export function useBlame(repoPath: string | null, filePath: string | null, commi
     queryFn: () => gitApi.getBlame(repoPath!, filePath!, commitHash ?? undefined),
     enabled: !!repoPath && !!filePath,
     staleTime: 30_000,
+    // git blame failures are deterministic — retrying just repeats the error.
+    retry: false,
   })
 }
 
