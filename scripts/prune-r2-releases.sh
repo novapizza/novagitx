@@ -10,10 +10,11 @@
 # Artifact naming (from electron-builder.cjs):
 #   NovaGitX-<ver>-<arch>-mac.dmg[.blockmap]   (macOS disk image + delta map)
 #   NovaGitX-<ver>-<arch>-mac.zip[.blockmap]   (macOS zip - used by the updater)
+#   NovaGitX-<ver>-<arch>-win.exe[.blockmap]   (Windows NSIS installer + delta map)
 # All of the above carry an X.Y.Z, so they are pruned by version.
 #
 # Unversioned keys are NEVER touched:
-#   latest-mac.yml / latest-mac-arm64.yml   (update manifests, overwritten each build)
+#   latest-mac.yml / latest-mac-arm64.yml / latest.yml   (update manifests, overwritten each build)
 # A key with no extractable X.Y.Z is skipped by design - that is the safety net
 # protecting the manifests.
 #

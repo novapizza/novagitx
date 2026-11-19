@@ -75,11 +75,49 @@ jobs:
           CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
           CSC_FOR_PULL_REQUEST: false
 
+  build-win:
+    environment: Production
+
+    name: Build and Publish Windows
+    runs-on: windows-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
+
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          NODE_OPTIONS: --max-old-space-size=4096
+
+      - name: Publish Windows
+        run: npx electron-builder --win --publish always --config electron-builder.cjs
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.R2_RELEASES_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.R2_RELEASES_SECRET_ACCESS_KEY }}
+          R2_RELEASES_ACCOUNT_ID: ${{ secrets.R2_RELEASES_ACCOUNT_ID }}
+          R2_RELEASES_BUCKET: ${{ secrets.R2_RELEASES_BUCKET }}
+          R2_RELEASES_PUBLIC_URL: ${{ secrets.R2_RELEASES_PUBLIC_URL }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+          # ── Authenticode signing (optional) ────────────────────
+          # Leave both secrets unset to ship an unsigned installer.
+          CSC_LINK: ${{ secrets.CSC_LINK }}
+          CSC_KEY_PASSWORD: ${{ secrets.CSC_KEY_PASSWORD }}
+          CSC_FOR_PULL_REQUEST: false
+
   prune:
     # Delete stale release artifacts once the new version is published, keeping
     # the newest 2 versions so electron-updater can still delta-patch N-1 -> N.
     name: Prune old R2 artifacts
-    needs: build-mac
+    needs: [build-mac, build-win]
     environment: Production
     runs-on: ubuntu-latest
     timeout-minutes: 10
